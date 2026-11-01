@@ -1,0 +1,10 @@
+node_modules/
+dist/
+data/
+.scratch/
+# Secrets: keep every .env file out of version control, except the placeholder template.
+.env*
+!.env.example
+*.pem
+*.log
+.DS_Store
