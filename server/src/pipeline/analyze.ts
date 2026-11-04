@@ -16,7 +16,7 @@ const box = {
   additionalProperties: false,
 };
 
-const SCENE_SCHEMA = {
+const BASE_SCENE_SCHEMA = {
   type: 'object',
   properties: {
     title: { type: 'string', description: 'Short evocative title for this memory, 2-6 words.' },
@@ -65,6 +65,27 @@ const SCENE_SCHEMA = {
   additionalProperties: false,
 };
 
+/** The extra per-object fields for the head/body split. Only sent when the option is on, so the request is otherwise exactly what it always was. */
+const SPLIT_FIELDS = {
+  split_head_body: {
+    type: 'boolean',
+    description: 'True only for a person whose face is large in the photo (see the instructions).',
+  },
+  head_box: { ...box, description: 'Only for split_head_body: a tight box around the head with its hair, not the neck or shoulders.' },
+};
+
+export function sceneSchema(splitPeople: boolean) {
+  if (!splitPeople) return BASE_SCENE_SCHEMA;
+  const item = BASE_SCENE_SCHEMA.properties.objects.items;
+  return {
+    ...BASE_SCENE_SCHEMA,
+    properties: {
+      ...BASE_SCENE_SCHEMA.properties,
+      objects: { ...BASE_SCENE_SCHEMA.properties.objects, items: { ...item, properties: { ...item.properties, ...SPLIT_FIELDS }, required: [...item.required, 'split_head_body', 'head_box'] } },
+    },
+  };
+}
+
 interface RawPlan {
   title: string;
   summary: string;
@@ -81,13 +102,18 @@ interface RawPlan {
     contact: PlannedObject['contact'];
     importance: number;
     approx_size_m: { width: number; height: number; depth: number };
+    split_head_body?: boolean;
+    head_box?: { x_min: number; y_min: number; x_max: number; y_max: number };
   }[];
   has_overlay_text: boolean;
   removal_prompt: string;
   world_prompt: string;
 }
 
-function systemPrompt(maxObjects: number) {
+const SPLIT_RULES = `
+Heads: a 3D model of a whole person gets the face only a few dozen pixels wide, so eyes, brows and lips come out as smears. When a person's face is large in the photo, rebuilding the head on its own, as a separate model, keeps that detail. For each person set split_head_body to true only when ALL of these hold: the head (hair included) is at least 14% of the image's height or 10% of its width; the face is turned toward the camera within about 60 degrees, with both eyes or at least one eye clearly visible; the head and torso are both in the frame. Otherwise set it to false (full-body shots where the head is small, backs of heads, faces hidden by hands or objects, profiles, crowds, anything that is not a person). When true, head_box is a tight box around the head with its hair (not the neck, shoulders or hands), on the same 0-1000 grid. When false, give head_box the same values as box.`;
+
+export function systemPrompt(maxObjects: number, splitPeople: boolean) {
   return `You are the scene director for "World of a Memory", an app that rebuilds one photo as an explorable 3D world.
 The world is assembled from two parts:
 1. A surrounding world generated from a copy of the photo with the chosen objects erased.
@@ -96,7 +122,7 @@ The world is assembled from two parts:
 Choose up to ${maxObjects} objects to rebuild as separate meshes, most important first.
 Good choices: people, animals, furniture, vehicles, bicycles, sculptures, potted plants, and other solid, compact things in the foreground or middle ground that a viewer would want to walk around.
 Do not choose: ground, floors, lawns, roads, walls, ceilings, fences, hedges, sky, water, terrain, trees rooted in the landscape, buildings or structures that make up the environment, flat things (rugs, posters, paintings), thin things (wires, poles, railings), objects smaller than about 2% of the image, crowds, or anything mostly hidden.
-Never split one object into parts and never pick an object that is part of another chosen object. Choose fewer objects, or none, when nothing qualifies.
+Never split one object into parts and never pick an object that is part of another chosen object${splitPeople ? ', except as the heads rule below says: a person stays ONE object in your plan, and the app splits the head from the body' : ''}. Choose fewer objects, or none, when nothing qualifies.
 
 Coordinates use a 0-1000 grid over the image: x from left (0) to right (1000), y from top (0) to bottom (1000).
 For each object:
@@ -109,7 +135,7 @@ For each object:
 
 removal_prompt: an instruction for an image editor that removes exactly the chosen objects (name each one and where it is) and any overlaid captions, titles, watermarks or logos, and fills the revealed areas with what would be behind them, continuing the existing ground, walls and background. If no objects are chosen, only remove overlaid text, or say to keep the image unchanged.
 world_prompt: 2-4 sentences describing the environment without the removed objects, including what plausibly lies beyond the frame, the materials, the time of day and the lighting, in the same visual style as the image. This guides a 3D world generator.
-title: a short, warm title for the memory.`;
+title: a short, warm title for the memory.${splitPeople ? SPLIT_RULES : ''}`;
 }
 
 function toBox(b: RawPlan['objects'][number]['box']): Box {
@@ -128,16 +154,18 @@ export async function analyzeScene(opts: {
   imageJpeg: Uint8Array;
   model: PlannerModel;
   maxObjects: number;
+  /** Let the plan mark people for a head/body split (the `splitPeople` option). */
+  splitPeople?: boolean;
 }): Promise<{ plan: ScenePlan; costUsd: number }> {
   const { data, costUsd } = await chatJson<RawPlan>({
     model: opts.model,
-    system: systemPrompt(Math.max(0, opts.maxObjects)),
+    system: systemPrompt(Math.max(0, opts.maxObjects), Boolean(opts.splitPeople)),
     content: [
       { type: 'text', text: 'Here is the memory to rebuild. Return the scene plan as JSON.' },
       { type: 'image_url', image_url: { url: toDataUrl(opts.imageJpeg, 'image/jpeg') } },
     ],
     schemaName: 'ScenePlan',
-    schema: SCENE_SCHEMA,
+    schema: sceneSchema(Boolean(opts.splitPeople)),
     reasoningEffort: opts.model === 'muse-wonder-1.0' ? 'medium' : 'high',
   });
 
@@ -154,6 +182,15 @@ export async function analyzeScene(opts: {
     used.add(id);
     const px = clamp(o.point?.x ?? (b.x0 + b.x1) / 2, b.x0, b.x1);
     const py = clamp(o.point?.y ?? (b.y0 + b.y1) / 2, b.y0, b.y1);
+    // A head box only counts when the model asked for the split and drew a sensible box inside the person's.
+    let splitHeadBody: PlannedObject['splitHeadBody'];
+    if (opts.splitPeople && o.split_head_body && o.head_box) {
+      const hb = toBox(o.head_box);
+      const inter = { x0: Math.max(hb.x0, b.x0), y0: Math.max(hb.y0, b.y0), x1: Math.min(hb.x1, b.x1), y1: Math.min(hb.y1, b.y1) };
+      const area = (q: Box) => Math.max(0, q.x1 - q.x0) * Math.max(0, q.y1 - q.y0);
+      // at least 1% of the image (the grid is 1000 x 1000), mostly inside the person's box, and clearly smaller than it
+      if (area(hb) >= 0.01 * 1000 * 1000 && area(inter) >= 0.8 * area(hb) && area(hb) < 0.9 * area(b)) splitHeadBody = { headBox: hb };
+    }
     objects.push({
       id,
       name: o.name,
@@ -170,6 +207,7 @@ export async function analyzeScene(opts: {
         height: Math.max(0.01, Number(o.approx_size_m?.height) || 0.5),
         depth: Math.max(0.01, Number(o.approx_size_m?.depth) || 0.5),
       },
+      ...(splitHeadBody ? { splitHeadBody } : {}),
     });
   }
 

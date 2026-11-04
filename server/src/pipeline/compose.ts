@@ -4,19 +4,23 @@ import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { calibrateMarble, marbleScale, rotateCloud } from '../geometry/calibrate.ts';
-import { fitObject, R_CAMERA_ALIGNED, R_TRIPO_MESH } from '../geometry/fit.ts';
+import { fitObject } from '../geometry/fit.ts';
 import { loadTriMesh, simplifyForFitting } from '../geometry/glb.ts';
+import { convexHull, type HullMesh } from '../geometry/hull.ts';
 import { loadPlyCloud } from '../geometry/ply.ts';
 import { dilateMask, maskFromPng, resizeMask, type Mask } from '../geometry/mask.ts';
-import { CV_TO_THREE, cvToThree, mul, normalize, quatFromMat3, type Vec3 } from '../geometry/math.ts';
+import { CV_TO_THREE, cvToThree, mul, quatFromMat3, type Vec3 } from '../geometry/math.ts';
+import { fitGroundPlane } from '../geometry/ground.ts';
+import { viewBaseFor } from '../geometry/pose.ts';
 import { centeredIntrinsics, estimateIntrinsics, hfovOf, loadMoge, resampleNearest, vfovOf, type Intrinsics, type MogeMaps } from '../geometry/moge.ts';
 import { renderReprojection, type PreviewObject } from '../geometry/preview.ts';
 import type { Pose, Shape } from '../geometry/raster.ts';
 import { buildReliefGlb } from '../geometry/relief.ts';
 import { decodeSpz, type SplatCloud } from '../geometry/spz.ts';
 import type { WorldHandle } from '../store.ts';
-import type { ObjectPlacement, SceneDoc } from '../types.ts';
+import type { MeshModel, ObjectPlacement, SceneDoc } from '../types.ts';
 import { errorMessage, median, writeFileAtomic } from '../util.ts';
+import { alignPair, dropStaleLayout, splitPairs } from './align.ts';
 
 function mogeFiles(files: Record<string, string>, world: WorldHandle) {
   return {
@@ -46,36 +50,28 @@ function averageRows(img: { width: number; height: number; rgb: Uint8Array }, y0
   return `#${hex(r)}${hex(g)}${hex(b)}`;
 }
 
-/** Gravity "up" in three.js camera coordinates from MoGe normals of floor-like pixels. */
-function estimateUp(maps: MogeMaps, exclude: Uint8Array | null): { up: Vec3; floorPixels: number } {
-  if (!maps.normals) return { up: [0, 1, 0], floorPixels: 0 };
-  let sx = 0, sy = 0, sz = 0, n = 0;
-  const { width: W, height: H } = maps;
-  for (let y = Math.floor(H * 0.35); y < H; y += 2) {
-    for (let x = 0; x < W; x += 2) {
-      const i = y * W + x;
-      if (!maps.valid[i] || (exclude && exclude[i])) continue;
-      const nx = maps.normals[i * 3], ny = maps.normals[i * 3 + 1], nz = maps.normals[i * 3 + 2];
-      if (ny > 0.8) { sx += nx; sy += ny; sz += nz; n++; }
-    }
-  }
-  const total = (W * H) / 4;
-  if (n < total * 0.02) return { up: [0, 1, 0], floorPixels: n };
-  const up = normalize([sx, sy, sz]);
-  // Guard against odd scenes: stay within 40° of the camera's own up.
-  if (up[1] < Math.cos((40 * Math.PI) / 180)) return { up: [0, 1, 0], floorPixels: n };
-  return { up, floorPixels: n };
+/**
+ * Gravity "up" in three.js camera coordinates from a plane fitted through the ground points, in the
+ * camera `k` (null = MoGe's own geometry). Averaging MoGe normals instead was 12° off on the backyard
+ * sample. Falls back to a level camera when too little ground is visible.
+ */
+function estimateUp(maps: MogeMaps, k: Intrinsics | null, exclude: Uint8Array | null): { up: Vec3; floorPixels: number; cameraHeight?: number } {
+  const plane = fitGroundPlane(maps, k, exclude);
+  // A plane through too few points is not used, so report no floor (callers read floorPixels > 0 as "ground found").
+  if (!plane || plane.inliers < (maps.width * maps.height) / 4 * 0.02) return { up: [0, 1, 0], floorPixels: 0 };
+  return { up: [plane.up[0], -plane.up[1], -plane.up[2]], floorPixels: plane.inliers, cameraHeight: -plane.height };
 }
 
 export async function composeScene(world: WorldHandle): Promise<SceneDoc> {
   const m = world.manifest;
   const diagnostics: string[] = [];
   const origFiles = m.depth.original?.files;
-  if (!origFiles?.points) throw new Error('MoGe-2 depth for the photo is missing');
+  if (!origFiles?.points) throw new Error('depth for the photo is missing');
+  const depthLabel = m.depth.original?.job?.model === 'moge3' ? 'MoGe-3' : 'MoGe-2';
   const orig = await loadMoge(mogeFiles(origFiles, world));
   const W = orig.width, H = orig.height;
   const kMoge = estimateIntrinsics(orig);
-  diagnostics.push(`MoGe-2 camera: ${hfovOf(kMoge).toFixed(1)}° horizontal field of view on a ${W}×${H} grid`);
+  diagnostics.push(`${depthLabel} camera: ${hfovOf(kMoge).toFixed(1)}° horizontal field of view on a ${W}×${H} grid`);
 
   const source = await rgbOf(world.file(m.image.file));
   const srcScaleX = source.width / W, srcScaleY = source.height / H;
@@ -120,8 +116,8 @@ export async function composeScene(world: WorldHandle): Promise<SceneDoc> {
     }
   }
 
-  const { up, floorPixels } = estimateUp(orig, exclude);
-  diagnostics.push(floorPixels ? `Gravity estimated from ${floorPixels} floor-facing depth samples` : 'No floor visible; assuming a level camera');
+  // Gravity in MoGe's geometry first (it seeds the Marble calibration); refitted below in the final camera.
+  let { up, floorPixels } = estimateUp(orig, null, exclude);
 
   // Marble world calibration: rotation + field of view (photometric), then metric scale (MoGe depth).
   let k: Intrinsics = kMoge;
@@ -171,6 +167,16 @@ export async function composeScene(world: WorldHandle): Promise<SceneDoc> {
   }
   const previewObjects: PreviewObject[] = [];
 
+  // Gravity in the camera the scene is composed in (MoGe depth along the rays of `k`).
+  const ground = estimateUp(orig, k, exclude);
+  up = ground.up;
+  floorPixels = ground.floorPixels;
+  diagnostics.push(
+    floorPixels
+      ? `Ground plane through ${floorPixels} depth samples: camera ${ground.cameraHeight!.toFixed(2)} m above the ground, looking ${((Math.asin(Math.max(-1, Math.min(1, up[2]))) * 180) / Math.PI).toFixed(1)}° down`
+      : 'Too little ground visible; assuming a level camera',
+  );
+
   // Fit every object.
   const sceneObjects: SceneDoc['objects'] = [];
   for (const o of m.objects) {
@@ -180,17 +186,23 @@ export async function composeScene(world: WorldHandle): Promise<SceneDoc> {
       const t0 = Date.now();
       const kind = o.mesh.kind ?? (/\.(ply|spz|splat)$/i.test(o.mesh.file) ? 'splat' : 'mesh');
       let shape: Shape;
+      let collider: HullMesh | null = null;
       if (kind === 'splat') {
         // Faint Gaussians still show in Spark (thin parts, leaves), so keep everything above 10% opacity.
         shape = { kind: 'points', cloud: await loadPlyCloud(world.file(o.mesh.file), { maxPoints: 45000, minOpacity: 0.1 }) };
+        // The walking collider only wraps the solid splats, without the few strays far from the object.
+        collider = convexHull((await loadPlyCloud(world.file(o.mesh.file), { maxPoints: 20000, minOpacity: 0.5 })).positions, { trim: 0.005 });
       } else {
         const full = await loadTriMesh(world.file(o.mesh.file), { withTexture: true });
         shape = { kind: 'mesh', mesh: await simplifyForFitting(full, 9000) };
+        collider = convexHull(full.positions, { trim: 0 });
       }
+      const model = (o.mesh.job?.model ?? 'tripo-v31') as MeshModel;
       const fit = fitObject({
         shape,
-        // TripoSplat splats are upright with -Y up (facing found by the yaw search); Tripo meshes face +X with +Y up.
-        base: kind === 'splat' ? R_CAMERA_ALIGNED : R_TRIPO_MESH,
+        // Each generator's axes (see canonFor): splats are upright with their facing found by the yaw search;
+        // Tripo meshes face +X with +Y up.
+        base: viewBaseFor(model),
         k,
         mask: mk,
         srcScaleX,
@@ -227,6 +239,7 @@ export async function composeScene(world: WorldHandle): Promise<SceneDoc> {
         scale: placement.scale,
         visible: true,
         fitIou: fit.iou,
+        ...(collider ? { collider } : {}),
       });
       diagnostics.push(
         `${o.name}: silhouette IoU ${fit.iou.toFixed(2)}, ${fit.centerDepth.toFixed(2)} m away, ${fit.heightM.toFixed(2)} m tall, ` +
@@ -234,6 +247,30 @@ export async function composeScene(world: WorldHandle): Promise<SceneDoc> {
       );
     } catch (err) {
       diagnostics.push(`${o.name}: placement failed (${errorMessage(err)})`);
+    }
+  }
+
+  // A person split into a head and a body: line both parts up with the photo's pixels (cached; a recompose that changes nothing costs a hash).
+  // Alignment keeps each part's pose, so the scene object is the same one with the aligned file shown and its hull taken from it.
+  if (m.options.splitPeople || m.objects.some((o) => o.aligned)) {
+    for (const pair of splitPairs(world)) {
+      const sh = sceneObjects.find((x) => x.id === pair.head.id), sb = sceneObjects.find((x) => x.id === pair.body.id);
+      if (!sh || !sb) { diagnostics.push(`${pair.head.name}: not aligned, a part could not be fitted`); continue; }
+      try {
+        const asPose = (o: typeof sh) => ({ position: o.position, quaternion: o.quaternion, scale: o.scale });
+        const out = await alignPair(world, pair, { head: asPose(sh), body: asPose(sb) }, vfovOf(k));
+        if (!out) { diagnostics.push(`${pair.head.name}: not aligned (see the log)`); continue; }
+        for (const [so, part] of [[sh, out.head], [sb, out.body]] as const) {
+          so.url = `/files/${m.id}/${part.file}`;
+          so.bytes = part.bytes;
+          if (part.collider) so.collider = part.collider;
+        }
+        // a saved layout was made for the unaligned geometry; it would pull the aligned parts out of place
+        if (!out.reused && (await dropStaleLayout(world, [pair.head.id, pair.body.id]))) diagnostics.push(`${pair.head.name}: the saved layout for the head and body was dropped, it was made for the unaligned parts`);
+        diagnostics.push(`${pair.head.name} and ${pair.body.name} aligned to the photo: ${out.summary}`);
+      } catch (err) {
+        diagnostics.push(`${pair.head.name}: alignment failed (${errorMessage(err)}); showing the parts as fitted`);
+      }
     }
   }
 
@@ -274,7 +311,7 @@ export async function composeScene(world: WorldHandle): Promise<SceneDoc> {
     version,
     title: m.title,
     image: { url: `/files/${m.id}/${m.image.file}`, width: m.image.width, height: m.image.height },
-    camera: { fovY: vfovOf(k), aspect: k.width / k.height, up, target, source: cameraSource },
+    camera: { fovY: vfovOf(k), aspect: k.width / k.height, up, target, source: cameraSource, ...(floorPixels && ground.cameraHeight ? { heightM: ground.cameraHeight } : {}) },
     world: worldDoc,
     relief,
     objects: sceneObjects,

@@ -15,7 +15,7 @@ interface SamInstance {
   confidence?: number;
 }
 
-function parseSamOutput(text: string, width: number, height: number): SamInstance[] {
+export function parseSamOutput(text: string, width: number, height: number): SamInstance[] {
   const parser = formats.segmentation.image().createParser();
   parser.push(text);
   const { result } = parser.finish({ status: 'completed' });
