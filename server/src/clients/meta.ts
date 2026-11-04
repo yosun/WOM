@@ -47,9 +47,72 @@ export function toDataUrl(bytes: Uint8Array, mime: string) {
   return `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
 }
 
-type ChatContent =
+export type ChatContent =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } };
+
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
+export interface ToolDef {
+  type: 'function';
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+}
+
+export type ChatMessage =
+  | { role: 'system'; content: string }
+  | { role: 'user'; content: string | ChatContent[] }
+  | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
+  | { role: 'tool'; tool_call_id: string; content: string };
+
+export interface ChatRequest {
+  model: string;
+  messages: ChatMessage[];
+  tools?: ToolDef[];
+  /** JSON schema for the final answer (structured output). */
+  schema?: { name: string; schema: Record<string, unknown> };
+  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  maxTokens?: number;
+  parallelToolCalls?: boolean;
+}
+
+export interface ChatResult {
+  message: { content: string | null; tool_calls?: ToolCall[] };
+  finishReason: string;
+  usage: MetaUsage;
+  costUsd: number;
+}
+
+/** One Chat Completions call with optional tools (tool_choice is always "auto" on Model API). */
+export async function chatCompletion(req: ChatRequest): Promise<ChatResult> {
+  const body: Record<string, unknown> = {
+    model: req.model,
+    messages: req.messages,
+    reasoning_effort: req.reasoningEffort ?? 'medium',
+    max_tokens: req.maxTokens ?? 16000,
+  };
+  if (req.tools?.length) {
+    body.tools = req.tools;
+    body.parallel_tool_calls = req.parallelToolCalls ?? false;
+  }
+  if (req.schema) body.response_format = { type: 'json_schema', json_schema: { name: req.schema.name, schema: req.schema.schema } };
+  const json = await withRetry(`chat ${req.model}`, () => metaFetch('/chat/completions', body, 600_000));
+  const choice = json.choices?.[0];
+  const usage: MetaUsage = {
+    inputTokens: json.usage?.prompt_tokens ?? 0,
+    outputTokens: json.usage?.completion_tokens ?? 0,
+    cachedTokens: json.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+  };
+  return {
+    message: { content: choice?.message?.content ?? null, tool_calls: choice?.message?.tool_calls ?? undefined },
+    finishReason: choice?.finish_reason ?? 'unknown',
+    usage,
+    costUsd: tokenCostUsd(req.model, usage),
+  };
+}
 
 export interface ChatJsonRequest {
   model: string;

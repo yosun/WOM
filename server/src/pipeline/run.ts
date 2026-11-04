@@ -1,10 +1,11 @@
 // The WOM pipeline. Steps persist their outputs, so re-running a world skips finished work and resumes
 // AI3D jobs that were already submitted.
 //
-//   prepare ─┬─ analyze ── segment ─┬─ cleanplate ─┬─ world (Marble)
+//   prepare ─┬─ analyze ── segment ── split ─┬─ cleanplate ─┬─ world (Marble)
 //            │                      │              └─ depth (clean plate)
 //            └─ depth (photo)       └─ cutouts ── meshes (Tripo)
 //                                                         └──────────── compose
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { uploadImage } from '../clients/ai3d.ts';
@@ -12,15 +13,19 @@ import { toDataUrl } from '../clients/meta.ts';
 import { MAX_PARALLEL_MESH_JOBS } from '../config.ts';
 import { maskFromPng, maskToPng } from '../geometry/mask.ts';
 import type { WorldHandle } from '../store.ts';
-import type { ObjectRecord, PlannedObject, StepId } from '../types.ts';
+import type { MeshModel, ObjectRecord, PlannedObject, PlannerModel, StepId } from '../types.ts';
 import { errorMessage, mapLimit, writeFileAtomic } from '../util.ts';
 import { analyzeScene } from './analyze.ts';
+import { activateAsset, objectDir, versionSuffix, wantedModel } from './assets.ts';
+import { checkActiveAssets } from './assetcheck.ts';
 import { makeCleanPlate } from './cleanplate.ts';
 import { composeScene } from './compose.ts';
 import { makeCutout } from './cutouts.ts';
 import { OBJECT_MODELS, runMoge, runObjectModel, runWorldGen } from './generate.ts';
+import { computePlacements } from './placements.ts';
 import { reviewMasks } from './review.ts';
 import { segmentObjects } from './segment.ts';
+import { cutoutInputs, splitPeople } from './split.ts';
 
 class CriticalStepError extends Error {}
 
@@ -35,9 +40,111 @@ export function startWorld(world: WorldHandle): Promise<void> {
   if (existing) return existing;
   const p = runWorld(world)
     .catch((err) => console.error(`[pipeline] world ${world.id} crashed:`, err))
-    .finally(() => running.delete(world.id));
+    .finally(() => finish(world));
   running.set(world.id, p);
   return p;
+}
+
+/** Release the world and send one more update, so pages see that nothing is running any more. */
+function finish(world: WorldHandle) {
+  running.delete(world.id);
+  void world.update(() => undefined);
+}
+
+/**
+ * Run other work on a world in the background (generating assets to compare, running placement agents).
+ * It holds the same lock as the pipeline, so a world never runs two jobs at once.
+ */
+export function startTask(world: WorldHandle, label: string, fn: () => Promise<unknown>): boolean {
+  if (running.has(world.id)) return false;
+  const p = fn()
+    .then(() => undefined)
+    .catch((err) => world.log(`${label} failed: ${errorMessage(err)}`))
+    .finally(() => finish(world));
+  running.set(world.id, p);
+  return true;
+}
+
+/**
+ * Generate `model`'s asset for every object that does not have one for its current mask (or only for the
+ * objects in `only`), without making it the active model. Each object is generated at most once per model
+ * and mask; existing ones are reused.
+ */
+export async function generateAssets(world: WorldHandle, model: MeshModel, only?: string[]) {
+  const has = (o: ObjectRecord) => Boolean(o.assets?.[model]?.file);
+  const todo = world.manifest.objects.filter((o) => o.cutout?.publicUrl && !has(o) && (!only || only.includes(o.id)));
+  if (!todo.length) return;
+  world.log(`Generating ${OBJECT_MODELS[model].label} for ${todo.map((o) => o.name).join(', ')} (to compare; the world keeps its current model)`);
+  const results = await mapLimit(todo, MAX_PARALLEL_MESH_JOBS, (o) => runObjectModel(world, objectFor(world, o.id), model, { activate: false }));
+  results.forEach((r, i) => {
+    if (r.status === 'rejected') world.log(`${OBJECT_MODELS[model].label} failed for ${todo[i].name}: ${errorMessage(r.reason)}`);
+  });
+  const done = world.manifest.objects.filter(has).length;
+  world.log(`${OBJECT_MODELS[model].label}: ${done} of ${world.manifest.objects.filter((o) => o.cutout).length} object(s) have one`);
+}
+
+/**
+ * Show another object model in the world. Every object must already have it, so no 3D job runs; compose
+ * fits the assets again and the placements use only cached agent answers (run agents from the viewer).
+ */
+export async function switchObjectModel(world: WorldHandle, model: MeshModel) {
+  const missing = world.manifest.objects.filter((o) => o.cutout && !o.assets?.[model]?.file);
+  if (missing.length) throw new Error(`${missing.map((o) => o.name).join(', ')} ${missing.length === 1 ? 'has' : 'have'} no ${OBJECT_MODELS[model].label} yet; generate it first`);
+  await world.update((m) => {
+    m.options.meshModel = model;
+    for (const o of m.objects) {
+      const a = o.assets?.[model];
+      if (a?.file) activateAsset(o, a);
+      // Switching the whole world means every object follows it again.
+      o.pinnedModel = undefined;
+    }
+  });
+  world.log(`Showing ${OBJECT_MODELS[model].label} objects (no new 3D jobs)`);
+  await recompose(world);
+}
+
+/**
+ * Show another model's asset for one object, e.g. because the asset check found leftovers of the photo's
+ * background in the current one. The other objects keep theirs. The choice is saved on the object, so
+ * retries and rebuilds of other objects do not undo it. Free: the asset already exists, compose fits it
+ * again, and agent placements come only from the call cache.
+ */
+export async function switchObjectAsset(world: WorldHandle, objectId: string, model: MeshModel) {
+  const o = world.manifest.objects.find((x) => x.id === objectId);
+  if (!o) throw new Error(`unknown object ${objectId}`);
+  const asset = o.assets?.[model];
+  if (!asset?.file || !existsSync(world.file(asset.file))) throw new Error(`${o.name} has no ${OBJECT_MODELS[model].label} yet; generate it first`);
+  await world.update((m) => {
+    const rec = m.objects.find((x) => x.id === objectId)!;
+    activateAsset(rec, asset);
+    rec.pinnedModel = model === m.options.meshModel ? undefined : model;
+  });
+  // A saved layout for this object was made for the previous asset's frame and scale.
+  const layoutFile = world.file('layout.json');
+  if (existsSync(layoutFile)) {
+    try {
+      const saved = JSON.parse(await readFile(layoutFile, 'utf8')) as { objects?: { id: string }[] };
+      if (saved.objects?.some((l) => l.id === objectId)) {
+        await writeFileAtomic(layoutFile, JSON.stringify({ ...saved, objects: saved.objects.filter((l) => l.id !== objectId) }, null, 2));
+      }
+    } catch {
+      // an unreadable layout is ignored by the viewer as well
+    }
+  }
+  world.log(`${o.name}: showing the ${OBJECT_MODELS[model].label} asset (no new 3D job)`);
+  await recompose(world);
+}
+
+/** Run placement agents on every object now (the world's agent selection is saved separately). */
+export async function runPlacementAgents(world: WorldHandle, agents: PlannerModel[]) {
+  await world.setStep('placements', { status: 'running' });
+  try {
+    const message = await computePlacements(world, { newCalls: true, agents });
+    await world.setStep('placements', { status: 'done', message });
+  } catch (err) {
+    await world.setStep('placements', { status: 'failed', error: errorMessage(err) });
+    throw err;
+  }
 }
 
 async function step(world: WorldHandle, id: StepId, fn: () => Promise<string | void>, critical: boolean): Promise<boolean> {
@@ -87,7 +194,8 @@ async function analyze(world: WorldHandle) {
   const m = world.manifest;
   if (m.plan) return;
   const small = await sharp(world.file(m.image.file)).resize(1536, 1536, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
-  const { plan, costUsd } = await analyzeScene({ imageJpeg: small, model: m.options.plannerModel, maxObjects: m.options.maxObjects });
+  const splittable = m.options.splitPeople && OBJECT_MODELS[m.options.meshModel].kind === 'splat';
+  const { plan, costUsd } = await analyzeScene({ imageJpeg: small, model: m.options.plannerModel, maxObjects: m.options.maxObjects, splitPeople: splittable });
   await world.addCost({ label: `${m.options.plannerModel} scene plan`, usd: costUsd, provider: 'meta', estimated: false });
   await world.update((mm) => {
     mm.plan = plan;
@@ -164,6 +272,14 @@ async function segment(world: WorldHandle) {
   return `${n} of ${plan.objects.length} object(s) segmented`;
 }
 
+/** People the plan marked become a head and a body (only for Gaussian-splat object models, which alignment can move). */
+async function split(world: WorldHandle) {
+  const m = world.manifest;
+  if (!m.options.splitPeople) return 'Off for this world';
+  if (OBJECT_MODELS[m.options.meshModel].kind !== 'splat') return 'Needs a Gaussian-splat object model';
+  return splitPeople(world);
+}
+
 async function cleanplate(world: WorldHandle) {
   const m = world.manifest;
   if (m.cleanPlate?.publicUrl) return;
@@ -202,9 +318,12 @@ async function cutouts(world: WorldHandle) {
   const todo = m.objects.filter((o) => o.mask && !o.cutout?.publicUrl);
   const results = await mapLimit(todo, 3, async (o) => {
     const planned = plan.objects.find((p) => p.id === o.id)!;
-    const mask = await maskFromPng(world.file(o.mask!.file));
+    // the head of a split person is cut from the photo with its hidden jaw painted in (see cutoutInputs)
+    const inputs = cutoutInputs(world, o, planned);
+    const mask = await maskFromPng(inputs.maskFile);
+    const filled = inputs.sourceFile ? await readFile(inputs.sourceFile) : null;
     const c = await makeCutout({
-      sourceJpeg: source,
+      sourceJpeg: filled ?? source,
       width: m.image.width,
       height: m.image.height,
       mask,
@@ -213,11 +332,11 @@ async function cutouts(world: WorldHandle) {
       log: (msg) => world.log(msg),
     });
     if (c.costUsd) await world.addCost({ label: `Muse Image completion: ${o.name}`, usd: c.costUsd, provider: 'meta', estimated: false });
-    const rawRel = `objects/${o.id}/cutout_raw.png`;
-    const rel = `objects/${o.id}/cutout.png`;
+    const rawRel = `${objectDir(o)}/cutout_raw.png`;
+    const rel = `${objectDir(o)}/cutout.png`;
     await writeFileAtomic(world.file(rawRel), c.rawPng);
     await writeFileAtomic(world.file(rel), c.finalPng);
-    const url = await uploadImage(c.finalPng, `${o.id}.png`, 'image/png');
+    const url = await uploadImage(c.finalPng, `${o.id}${versionSuffix(o)}.png`, 'image/png');
     await world.update(() => {
       objectFor(world, o.id).cutout = { file: rel, rawFile: rawRel, completed: c.completed, publicUrl: url };
     });
@@ -236,10 +355,10 @@ async function cutouts(world: WorldHandle) {
 
 async function meshes(world: WorldHandle) {
   const m = world.manifest;
-  const todo = m.objects.filter((o) => o.cutout?.publicUrl && !(o.mesh?.file && o.mesh.job?.model === m.options.meshModel));
+  const todo = m.objects.filter((o) => o.cutout?.publicUrl && !(o.mesh?.file && o.mesh.job?.model === wantedModel(m, o)));
   await world.update(() => { for (const o of todo) objectFor(world, o.id).status = 'running'; });
   const results = await mapLimit(todo, MAX_PARALLEL_MESH_JOBS, async (o) => {
-    await runObjectModel(world, objectFor(world, o.id), m.options.meshModel);
+    await runObjectModel(world, objectFor(world, o.id), wantedModel(m, o));
     await world.update(() => { const rec = objectFor(world, o.id); rec.status = 'done'; rec.error = undefined; });
   });
   for (let i = 0; i < results.length; i++) {
@@ -251,11 +370,13 @@ async function meshes(world: WorldHandle) {
     }
   }
   const kind = OBJECT_MODELS[m.options.meshModel].kind === 'splat' ? 'splat' : 'mesh';
-  const done = world.manifest.objects.filter((o) => o.mesh?.file && o.mesh.job?.model === m.options.meshModel).length;
+  const done = world.manifest.objects.filter((o) => o.mesh?.file && o.mesh.job?.model === wantedModel(world.manifest, o)).length;
   const wanted = world.manifest.objects.filter((o) => o.cutout).length;
   if (wanted > 0 && done === 0) throw new Error(`every ${kind} job failed`);
   if (done < wanted) await world.setStep('meshes', { status: 'failed', error: `${wanted - done} of ${wanted} ${kind}(es) failed`, message: `${done} of ${wanted} ${kind}(es) ready` });
-  return `${done} ${kind === 'splat' ? 'splat' : 'mesh'}${done === 1 ? '' : 'es'} ready`;
+  // Look for leftovers of the photo's background in the new assets (about a cent each; never fails the step).
+  const flagged = done > 0 ? await checkActiveAssets(world) : '';
+  return `${done} ${kind === 'splat' ? 'splat' : 'mesh'}${done === 1 ? '' : 'es'} ready${flagged}`;
 }
 
 async function worldStep(world: WorldHandle) {
@@ -294,6 +415,7 @@ async function runWorld(world: WorldHandle) {
 
     await step(world, 'analyze', () => analyze(world), true);
     await step(world, 'segment', () => segment(world), true);
+    await step(world, 'split', () => split(world), false);
 
     const hasObjects = world.manifest.objects.some((o) => o.mask);
     const cleanP = (async () => {
@@ -336,6 +458,9 @@ async function runWorld(world: WorldHandle) {
       for (const d of doc.diagnostics) world.log(`compose: ${d}`);
       return `${doc.objects.length} object(s) placed${doc.world ? ' in the Marble world' : ''}`;
     }, true);
+    // Alternative placements (grounded fitter, Muse agents). The scene is already viewable; this adds choices.
+    await world.setStep('placements', { status: 'pending' });
+    await step(world, 'placements', () => computePlacements(world, { newCalls: true }), false);
 
     const anyFailed = Object.values(world.manifest.steps).some((s) => s.status === 'failed') ||
       world.manifest.objects.some((o) => o.status === 'failed');
@@ -362,26 +487,39 @@ export async function prepareRetry(world: WorldHandle) {
     }
     // Objects made with a different model than the current option are regenerated.
     for (const o of m.objects) {
-      if (o.cutout && o.mesh?.file && o.mesh.job?.model !== m.options.meshModel) o.status = 'pending';
+      if (o.cutout && o.mesh?.file && o.mesh.job?.model !== wantedModel(m, o)) o.status = 'pending';
     }
     // Steps that depend on retried objects must run again.
-    if (m.objects.some((o) => o.cutout && !(o.mesh?.file && o.mesh.job?.model === m.options.meshModel))) m.steps.meshes.status = 'pending';
+    if (m.objects.some((o) => o.cutout && !(o.mesh?.file && o.mesh.job?.model === wantedModel(m, o)))) m.steps.meshes.status = 'pending';
+    // A different world or depth model: reuse it if it was made before, otherwise generate it once.
+    if (m.options.worldModel !== 'none' && m.world?.job?.model && m.world.job.model !== m.options.worldModel) m.steps.world.status = 'pending';
+    if ((m.depth.original?.job?.model ?? 'moge2') !== (m.options.depthModel ?? 'moge2')) m.steps.depth.status = 'pending';
     if (m.objects.some((o) => o.mask && !o.cutout)) m.steps.cutouts.status = 'pending';
     m.steps.compose.status = 'pending';
+    if (m.steps.placements) m.steps.placements.status = 'pending';
   });
 }
 
-/** Re-run only the local compose step (free). */
+/** Re-run only the local compose step and the placements (free: agents answer only from the call cache). */
 export async function recompose(world: WorldHandle) {
   await world.setStep('compose', { status: 'running' });
+  let doc;
   try {
-    const doc = await composeScene(world);
-    await world.update((m) => { m.scene = { file: 'scene.json', version: doc.version }; });
+    doc = await composeScene(world);
+    await world.update((m) => { m.scene = { file: 'scene.json', version: doc!.version }; });
     await world.setStep('compose', { status: 'done', message: `${doc.objects.length} object(s) placed${doc.world ? ' in the Marble world' : ''}` });
     for (const d of doc.diagnostics) world.log(`compose: ${d}`);
-    return doc;
   } catch (err) {
     await world.setStep('compose', { status: 'failed', error: errorMessage(err) });
     throw err;
   }
+  await world.setStep('placements', { status: 'running' });
+  try {
+    const message = await computePlacements(world, { newCalls: false });
+    await world.setStep('placements', { status: 'done', message });
+  } catch (err) {
+    world.log(`placements failed: ${errorMessage(err)}`);
+    await world.setStep('placements', { status: 'failed', error: errorMessage(err) });
+  }
+  return doc;
 }
