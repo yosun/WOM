@@ -1,9 +1,10 @@
-// Selling credits with Stripe. The packs are Payment Links made by scripts/stripe-packs.mjs and listed in packs.json. The
+// Selling credits with Stripe. The packs are Payment Links made by scripts/stripe-packs.mjs and listed in the packs JSON files. The
 // server holds no Stripe API key: it sends the buyer to a link with their user id attached (client_reference_id), and Stripe
 // tells it, in a signed webhook, who paid for which link. The one secret is the webhook's signing secret (STRIPE_WEBHOOK_SECRET).
 import Stripe from 'stripe';
 import { asSystem } from './db.ts';
-import packsFile from './packs.json' with { type: 'json' };
+import testPacks from './packs.json' with { type: 'json' };
+import livePacks from './packs.live.json' with { type: 'json' };
 
 export interface Pack {
   id: string;
@@ -15,9 +16,14 @@ export interface Pack {
   url: string;
 }
 
+const mode = process.env.WOM_STRIPE_MODE?.trim() || 'test';
+if (mode !== 'test' && mode !== 'live') throw new Error('WOM_STRIPE_MODE must be test or live.');
+const packsFile = mode === 'live' ? livePacks : testPacks;
+if (packsFile.mode !== mode || !packsFile.packs.length) throw new Error(`Stripe ${mode} mode requires matching ${mode} payment links.`);
+
 export const PACKS: readonly Pack[] = packsFile.packs;
 /** Packs bought in test mode take a test card (4242 4242 4242 4242) and no real money. */
-export const STRIPE_TEST_MODE = packsFile.mode !== 'live';
+export const STRIPE_TEST_MODE = mode === 'test';
 
 // Stripe takes letters, digits, dashes and underscores in client_reference_id, up to 200 characters.
 const REFERENCE = /^[A-Za-z0-9_-]{1,200}$/;

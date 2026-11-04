@@ -2,7 +2,7 @@
   "name": "world-of-a-memory",
   "version": "0.1.0",
   "private": true,
-  "description": "World of a Memory (WOM): turn a single photo into an explorable 3D world with Muse Spark, SAM 3.1, Muse Image, MoGe-2, Tripo and World Labs.",
+  "description": "WOMetrics: World Observation Metrics for reconstructed 3D worlds, with the WOMPar reference pipeline and a standalone one-key evaluation demo.",
   "type": "module",
   "engines": {
     "node": ">=22.18"
@@ -11,10 +11,13 @@
     "packages/*"
   ],
   "scripts": {
+    "demo:wompar": "node demo/wompar/wompar.mjs",
+    "demo:wompar:offline": "node demo/wompar/wompar.mjs --offline",
+    "test:demo:wompar": "node --test demo/wompar/wompar.test.mjs",
     "dev": "node scripts/dev.mjs",
     "dev:server": "node --watch-path=server/src --watch-path=packages/metrics/src --env-file-if-exists=.env server/src/index.ts",
     "dev:web": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/build-wompar-public.mjs",
     "start": "vite build && node --env-file-if-exists=.env server/src/index.ts",
     "serve": "node --env-file-if-exists=.env server/src/index.ts",
     "db:import-worlds": "node scripts/import-worlds.mjs",
@@ -27,6 +30,7 @@
     "test:par": "node --test scripts/tests/par.test.ts",
     "test:setup": "node --test scripts/tests/setup.test.ts",
     "test:wometrics:ui": "node scripts/tests/wometrics-ui.mjs",
+    "test:home-demo": "node scripts/tests/home-demo-ui.mjs",
     "test:videos": "node --test scripts/tests/videos.test.ts",
     "test:llm": "node --test scripts/tests/llm.test.ts",
     "test:placement": "node --test scripts/tests/placement.test.ts",

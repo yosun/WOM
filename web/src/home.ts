@@ -1,9 +1,10 @@
-import { api, type CreditPack, type WorldOptions, type WorldSummary } from './api.ts';
+import { api, type WorldOptions, type WorldSummary } from './api.ts';
 import { currentUser, userMenu, requireSignIn, signedIn } from './auth.ts';
 import { worldHref } from './routes.ts';
 import { clear, fmtUsd, h, toast } from './dom.ts';
 import { MODEL_LABELS, PLANNER_MODELS } from '../../server/src/types.ts';
 import { createMemoryPreview, memoryMark } from './home-memory.ts';
+import { createHomeAccount } from './home-account.ts';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif,.heic,.heif,.avif,video/quicktime,video/mp4,.mov,.mp4';
 
@@ -15,114 +16,9 @@ const STATUS_LABEL: Record<WorldSummary['status'], string> = {
   failed: 'Failed',
 };
 
-/** The signed-in person's name in their share links, and their credits with a place for a promo code. Nothing for a visitor. */
-function accountPanel(balance: HTMLElement): HTMLElement | '' {
-  const me = currentUser();
-  if (!me) return '';
-
-  // The name in links: wom.quest/u/<name>/<world>.
-  const name = h('input', { type: 'text', value: me.handle ?? '', placeholder: 'your-name', maxlength: 30, 'aria-label': 'Your name in share links', autocomplete: 'off', spellcheck: false }) as HTMLInputElement;
-  const link = h('span.muted', me.handle ? `${location.host}/u/${me.handle}/…` : 'Choose a name for your links');
-  const rename = h('button.small', { type: 'button' }, 'Change');
-  rename.addEventListener('click', async () => {
-    rename.disabled = true;
-    try {
-      const r = await api.setHandle(name.value);
-      name.value = r.user.handle ?? '';
-      link.textContent = `${location.host}/u/${r.user.handle}/…`;
-      toast('Your links now use that name. Links with the old name keep working.');
-    } catch (err) {
-      toast((err as Error).message, 'error');
-    } finally {
-      rename.disabled = false;
-    }
-  });
-
-  // Credits: a world costs a fixed number. A promo code adds more.
-  const credits = h('span.muted', 'Credits…');
-  const code = h('input', { type: 'text', placeholder: 'WOM-XXXX-XXXX', maxlength: 24, 'aria-label': 'Promo code', autocomplete: 'off', spellcheck: false }) as HTMLInputElement;
-  const redeem = h('button.small', { type: 'button' }, 'Redeem');
-  const redeemRow = h('div.row', code, redeem);
-  redeemRow.hidden = true;
-  const show = (balance: number | null, worldCredits: number, unlimited: boolean) => {
-    credits.textContent = unlimited ? 'You build for free.' : `${(balance ?? 0).toLocaleString()} credits · a world costs ${worldCredits.toLocaleString()}`;
-    redeemRow.hidden = unlimited;
-  };
-  redeem.addEventListener('click', async () => {
-    if (!code.value.trim()) return;
-    redeem.disabled = true;
-    try {
-      const r = await api.redeem(code.value);
-      code.value = '';
-      show(r.balance, r.worldCredits, false);
-      toast('Credits added.');
-    } catch (err) {
-      toast((err as Error).message, 'error');
-    } finally {
-      redeem.disabled = false;
-    }
-  });
-
-  // Buying credits: Stripe's page takes the payment and sends the buyer back here (?credits=paid). The credits arrive a moment
-  // later, when Stripe tells the server, so the balance is watched for a few seconds on the way back.
-  const BEFORE = 'wom.credits.before';
-  let current: number | null = null;
-  const packs = h('div.packs');
-  const buyNote = h('span.muted');
-  const buy = h('div.buy', h('div.row', h('strong', 'Buy credits'), packs), buyNote);
-  buy.hidden = true;
-  const showPacks = (list: CreditPack[], testMode: boolean) => {
-    clear(packs);
-    buy.hidden = list.length === 0;
-    const base = list[0] ? list[0].credits / list[0].usd : 0;
-    for (const p of list) {
-      const more = base ? Math.round((p.credits / p.usd / base - 1) * 100) : 0;
-      const a = h('a.pack', { href: p.url }, h('strong', `$${p.usd}`), h('span', `${p.credits.toLocaleString()} credits`), more > 0 ? h('em', `+${more}% more`) : '');
-      a.addEventListener('click', () => { try { sessionStorage.setItem(BEFORE, String(current ?? 0)); } catch { /* private mode: the balance is simply not watched */ } });
-      packs.append(a);
-    }
-    buyNote.textContent = testMode ? 'Test mode: pay with card 4242 4242 4242 4242, any future date, any CVC. No money moves.' : '';
-  };
-  const refresh = async () => {
-    const c = await api.credits();
-    current = c.balance;
-    show(c.balance, c.worldCredits, c.unlimited);
-    showPacks(c.packs, c.testMode);
-    return c;
-  };
-  const backFromStripe = new URLSearchParams(location.search).get('credits') === 'paid';
-  void refresh().catch(() => { credits.textContent = ''; });
-  if (backFromStripe) {
-    history.replaceState(null, '', `${location.pathname}${location.hash}`);
-    let before = NaN; // the balance when the buyer left; unknown if the browser kept no record
-    try { before = Number(sessionStorage.getItem(BEFORE) ?? NaN); sessionStorage.removeItem(BEFORE); } catch { /* no record */ }
-    toast('Thank you. Adding your credits…');
-    void (async () => {
-      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-      for (let i = 0; i < 12; i++) {
-        await wait(i === 0 ? 1200 : 2500);
-        const c = await refresh().catch(() => null);
-        if (c && (c.balance ?? 0) > before) { toast('Credits added.'); return; }
-        if (!Number.isFinite(before)) return; // nothing to compare with: the balance on screen is as current as it gets
-      }
-      toast('Your payment went through. If the credits are not here yet, reload in a minute.');
-    })();
-  }
-
-  return h('section.account',
-    h('div.row', h('strong', 'Your link'), link, name, rename),
-    h('div.row', h('strong', 'Credits'), credits),
-    redeemRow,
-    buy,
-    me.role === 'admin' ? h('div.row', h('strong', 'AI3D'), balance) : '',
-  );
-}
-
-export function renderHome(root: HTMLElement) {
+export function renderHome(root: HTMLElement, navigate: (href: string) => void) {
   clear(root);
-  const paidForCredits = new URLSearchParams(location.search).get('credits') === 'paid';
-  const events = new AbortController();
-  const memory = createMemoryPreview();
+  const memory = createMemoryPreview(navigate);
   let disposed = false;
   let previewUrl: string | undefined;
   let file: File | null = null;
@@ -280,12 +176,7 @@ export function renderHome(root: HTMLElement) {
   const galleryWrap = h('section.gallery-wrap', { id: 'your-worlds', hidden: !signedIn(), 'aria-label': 'Your worlds' },
     h('div.gallery-head', h('div', galleryTitle, galleryNote), slidesLink), gallery,
   );
-  const account = currentUser() ? h('details.home-account', { open: paidForCredits }, h('summary', 'Account', h('span.home-account-label', ' & credits')), accountPanel(balance)) : null;
-  const closeAccount = () => { if (account) account.open = false; };
-  document.addEventListener('pointerdown', (e) => { if (e.target instanceof Node && !account?.contains(e.target)) closeAccount(); }, { signal: events.signal });
-  account?.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeAccount(); account.querySelector('summary')?.focus(); }
-  });
+  const account = createHomeAccount(balance);
   const showWorlds = () => {
     galleryWrap.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     galleryTitle.focus({ preventScroll: true });
@@ -296,14 +187,14 @@ export function renderHome(root: HTMLElement) {
       h('header.home-nav',
         h('a.home-brand', { href: '/', 'aria-label': 'World of a Memory home' }, memoryMark('home-brand-keyhole'), h('span', h('strong', 'WOM'), h('span', 'World of a Memory'))),
         h('nav.home-nav-actions', { 'aria-label': 'Your account and worlds' },
-          signedIn() ? h('button.home-nav-link', { type: 'button', onclick: showWorlds }, 'Your worlds') : '', account, userMenu(),
+          signedIn() ? h('button.home-nav-link', { type: 'button', onclick: showWorlds }, 'Your worlds') : '', account?.button, userMenu(),
         ),
       ),
       h('section.home-intro', { 'aria-labelledby': 'home-title' },
         h('div.hero',
-          h('p.home-eyebrow', 'A little closer to being there.'),
-          h('h1', { id: 'home-title' }, 'Step inside a ', h('em', 'photograph.')),
-          h('p.lede', 'Turn a photo into a 3D world you can walk through. Revisit a place. See what lies beyond the frame.'),
+          h('p.home-eyebrow', 'Every memory has more to give.'),
+          h('h1', { id: 'home-title' }, 'Go beyond the ', h('em', 'photograph.')),
+          h('p.lede', 'Turn a photo into a 3D scene with individually rebuilt objects. Explore new angles, save your favorite views, and bring still moments to life with video.'),
           h('section.upload', { 'aria-label': 'Create a memory' },
             drop,
             h('p.upload-formats', 'Photos, iPhone HEIC & short videos'),
@@ -314,9 +205,23 @@ export function renderHome(root: HTMLElement) {
         ),
         memory.el,
       ),
+      h('section.home-measure', { 'aria-label': 'How WOM measures AI worlds' },
+        h('article',
+          h('span.home-eyebrow', 'WOMetrics'),
+          h('h2', 'Nutrition facts for AI worlds.'),
+          h('p', 'See which AI models shaped each scene, how closely it matches the photo, and how long it took.'),
+          memory.facts,
+        ),
+        h('article',
+          h('span.home-eyebrow', 'Global WOMPar'),
+          h('h2', 'A common score for every mix.'),
+          h('p', 'Compare complete reconstructions on the same fixed course. The reference sets par at zero; lower is better.'),
+          h('a.home-sample-link', { href: '/wompar.html' }, 'Explore the WOMPar demo', h('span', { 'aria-hidden': 'true' }, '↗')),
+        ),
+      ),
       galleryWrap,
       h('footer.home-footer',
-        h('p', 'A photograph holds a moment. Give it a world.'),
+        h('p', 'A photograph holds a moment. See what it can become.'),
         h('details.home-colophon', h('summary', 'Behind the memory'),
           h('p', 'Built with Muse Spark, SAM, IDOL, Tripo, MoGe and World Labs Marble.'),
           currentUser()?.role === 'admin' ? h('nav', { 'aria-label': 'World evaluation' }, h('a', { href: '#/bench' }, 'World Observation Metrics'), h('a', { href: '#/observations' }, 'Observations')) : '',
@@ -324,6 +229,10 @@ export function renderHome(root: HTMLElement) {
       ),
     ),
   );
+  if (account) {
+    root.append(account.dialog);
+    if (account.paidForCredits) account.open();
+  }
 
   if (currentUser()?.role === 'admin') void api.health().then((hres) => {
     if (hres.keys && (!hres.keys.meta || !hres.keys.ai3d)) {
@@ -378,7 +287,7 @@ export function renderHome(root: HTMLElement) {
   return () => {
     disposed = true;
     inspectSeq++;
-    events.abort();
+    account?.dispose();
     memory.dispose();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   };

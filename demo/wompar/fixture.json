@@ -1,0 +1,25 @@
+{
+  "schema": "wompar-demo-fixture/1",
+  "id": "public-object-split-source-view",
+  "scope": "Source-view diagnostic from the scripted object-split experiment; not the global pilot course.",
+  "source": {
+    "path": "demo/object-split/assets/img/full-photo.webp",
+    "label": "Source photograph",
+    "sha256": "c13432b0d671f3047bfd00e3be59538450e7a04d252504de3f5b9049493a490f"
+  },
+  "reference": {
+    "path": "demo/object-split/assets/img/full-one.webp",
+    "label": "One object",
+    "sha256": "6c87d36d3a90c50ed94dacfe0f1d97d920d53e734cd129c015c7f4c004093932"
+  },
+  "candidate": {
+    "path": "demo/object-split/assets/img/full-eyes.webp",
+    "label": "Split + eye corrector",
+    "sha256": "5bd350ec3fb20f94010492dd69e177bdf75c6e141bfa7f9e8142df6f9f00d1f7"
+  },
+  "measurements": {
+    "path": "demo/object-split/assets/data.json",
+    "label": "Saved object-split measurements",
+    "sha256": "34603a2a29aadeb9ba433b5aa76ffd43337545e3ce0eff11b98135a9d9d7cc59"
+  }
+}

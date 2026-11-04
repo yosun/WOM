@@ -1,16 +1,22 @@
-// Make the credit packs in Stripe, and write what the server needs to sell them (server/src/packs.json).
+// Make the credit packs in Stripe, and write what the server needs to sell them.
 //
-//   node scripts/stripe-packs.mjs
+//   node scripts/stripe-packs.mjs          test mode -> server/src/packs.json
+//   node scripts/stripe-packs.mjs --live   live mode -> server/src/packs.live.json
 //
-// Uses the Stripe CLI you are logged in with, in test mode: it stops if Stripe says anything it touched is live. It needs no key
-// of its own. Safe to run again: a product, price or payment link that is already there (found by its metadata) is reused, so
+// Uses the Stripe CLI you are logged in with, and refuses responses from the wrong mode. It needs no key of its own.
+// Safe to run again: a product, price or payment link that is already there (found by its metadata) is reused, so
 // a changed pack in PACKS below is made fresh and the old one is left for you to archive in the dashboard.
 //
 // Each pack is a Payment Link. The server adds ?client_reference_id=<user> to it, and Stripe's webhook (server/src/stripe.ts)
 // tells the server who paid for which link. The server holds no Stripe API key, only the webhook's signing secret.
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { params, requireTestMode, stripe } from './stripe-cli.mjs';
+import { params, requireMode, stripe as callStripe } from './stripe-cli.mjs';
+
+const args = process.argv.slice(2);
+if (args.some((arg) => arg !== '--live')) throw new Error('Usage: node scripts/stripe-packs.mjs [--live]');
+const live = args.includes('--live');
+const stripe = (args) => callStripe(args, { live });
 
 // What each pack costs and gives. A world costs 500 credits (WORLD_CREDITS), so $10 builds two, and the bigger packs
 // give 10%, 20% and 30% more credits per dollar. Change these numbers, run this again, and commit packs.json.
@@ -21,12 +27,17 @@ const PACKS = [
   { id: 'studio', name: 'Studio', usd: 100, credits: 13000 },
 ];
 const ORIGIN = 'https://wom.quest';
-const OUT = path.resolve(import.meta.dirname, '../server/src/packs.json');
+const OUT = path.resolve(import.meta.dirname, live ? '../server/src/packs.live.json' : '../server/src/packs.json');
 
-requireTestMode();
+requireMode(live);
 
-const products = stripe(['products', 'list', '--limit', '100']).data;
-const links = stripe(['payment_links', 'list', '--limit', '100']).data;
+function completeList(args) {
+  const result = stripe(args);
+  if (result.has_more) throw new Error(`Too many Stripe results for ${args.slice(0, 2).join(' ')}; refusing to create duplicates.`);
+  return result.data;
+}
+const products = completeList(['products', 'list', '--limit', '100']);
+const links = completeList(['payment_links', 'list', '--limit', '100']);
 const out = [];
 
 for (const pack of PACKS) {
@@ -42,7 +53,7 @@ for (const pack of PACKS) {
     })]);
   }
 
-  const prices = stripe(['prices', 'list', '--product', product.id, '--active=true', '--limit', '20']).data;
+  const prices = completeList(['prices', 'list', '--product', product.id, '--active=true', '--limit', '100']);
   let price = prices.find((p) => p.unit_amount === cents && p.currency === 'usd' && !p.recurring);
   if (!price) price = stripe(['prices', 'create', ...params({ product: product.id, unit_amount: cents, currency: 'usd' })]);
 
@@ -66,5 +77,5 @@ for (const pack of PACKS) {
   console.log(`${pack.id.padEnd(9)} $${String(pack.usd).padEnd(4)} ${String(pack.credits).padStart(6)} credits  ${link.id}  ${link.url}`);
 }
 
-writeFileSync(OUT, `${JSON.stringify({ mode: 'test', packs: out }, null, 2)}\n`);
+writeFileSync(OUT, `${JSON.stringify({ mode: live ? 'live' : 'test', packs: out }, null, 2)}\n`);
 console.log(`Wrote ${path.relative(process.cwd(), OUT)}`);

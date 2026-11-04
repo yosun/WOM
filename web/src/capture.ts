@@ -42,7 +42,7 @@ export interface CaptureCard {
   dispose(): void;
 }
 
-export function createCaptureCard(mount: HTMLElement, studio: VideoStudio): CaptureCard {
+export function createCaptureCard(mount: HTMLElement, studio: VideoStudio, options: { onRemove?: (slideId: string) => void } = {}): CaptureCard {
   // Announced to screen readers; the card itself is not a live region, because content that is already in
   // a region when it is inserted is often not read out.
   const live = h('div.capture-live', { role: 'status', 'aria-live': 'polite' });
@@ -99,6 +99,7 @@ export function createCaptureCard(mount: HTMLElement, studio: VideoStudio): Capt
         undo.disabled = true;
         try {
           await api.deleteSlide(slide.world, slide.id);
+          options.onRemove?.(slide.id);
           if (card === el) close();
           toast('Capture removed.');
         } catch (err) {

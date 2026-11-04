@@ -1,4 +1,4 @@
-# @wom/metrics
+# WOMetrics — @wom/metrics
 
 **WOM: World Observation Metrics.** A benchmark framework. It does not care which model, agent or process gives the answers: an application declares what is asked (a *task*) and who answers (*subjects*), and the framework runs them, keeps the paid calls honest, stores the runs and serves the dashboard that reads them.
 
@@ -17,6 +17,12 @@ your app ──defines──▶  Task      the cases, and how an answer is score
 ```
 
 It is a workspace package of this repository (`npm install` links it as `@wom/metrics`). The runner does not know about masks, Muse or MoGe: the WOM app plugs those in, and a different application can do the same with its own tasks. The package also exports a representation-independent global Par protocol for whole-world comparisons on fixed courses of photographs.
+
+**Try it first:** the [standalone WOMPar demo](../../demo/wompar/README.md) runs directly with
+Node, without installing the app. Start offline with the public saved case, then add one
+Muse, OpenAI, Gemini, Anthropic or AI3D key for a live test. Its source-view comparisons remain
+unranked; the complete-course scoring contract is described below. To bring your own method,
+see [Contributing a setup to WOMetrics](../../docs/wometrics/contributing.md).
 
 - [A benchmark in one file](#a-benchmark-in-one-file)
 - [The model](#the-model): task, case, subject, method, answer, run

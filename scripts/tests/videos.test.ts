@@ -109,6 +109,9 @@ test('a capture uses its own durable first frame and exact prompt, with safe pub
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
   const provider = mockedProvider(c);
+  let uploaded: Buffer | undefined;
+  const upload = provider.uploadImage;
+  provider.uploadImage = async (bytes, filename, mime) => { uploaded = Buffer.from(bytes); return upload(bytes, filename, mime); };
   provider.listModels = async () => { await gate; return ['h3-max-image-to-video']; };
   const s = service(provider);
   const r = await s.create(world, request(slideId));
@@ -129,7 +132,7 @@ test('a capture uses its own durable first frame and exact prompt, with safe pub
   assert.ok(result.sourceImageUrl.endsWith(`/${r.id}-source.jpg`));
   assert.ok(result.thumbnailUrl?.endsWith(`/${r.id}-thumb.jpg`));
   assert.ok(result.videoUrl?.endsWith(`/${r.id}.mp4`));
-  assert.ok((await readFile(world.file(`videos/${r.id}-source.jpg`))).length > 0);
+  assert.deepEqual(await readFile(world.file(`videos/${r.id}-source.jpg`)), uploaded);
   assert.ok(!JSON.stringify(result).includes('provider-job'));
   assert.ok(!JSON.stringify(result).includes('uploads.test'));
   assert.ok(!JSON.stringify(result).includes('requestId'));
@@ -277,6 +280,86 @@ test('temporary polling and download failures retry the existing job; thumbnail 
   assert.equal(result.thumbnailUrl, undefined);
   assert.equal(c.submits.length, 1);
   assert.equal(c.downloads, 2);
+});
+
+test('completed histories restore missing or corrupt middle frames without changing the generating image', async () => {
+  const { world } = await worldFixture();
+  const c = calls(), s = service(mockedProvider(c));
+  const created = await s.create(world, request());
+  await s.continue(world, created.id);
+  s.dispose();
+  const source = world.file(`videos/${created.id}-source.jpg`);
+  const before = await readFile(source);
+  const thumb = world.file(`videos/${created.id}-thumb.jpg`);
+  await writeFileAtomic(thumb, 'not a JPEG');
+  const history = JSON.parse(await readFile(world.file('videos.json'), 'utf8'));
+  delete history.videos[0].thumbnailFile;
+  delete history.videos[0].thumbnailUrl;
+  await writeFileAtomic(world.file('videos.json'), JSON.stringify(history));
+
+  let repairs = 0;
+  const resumed = service(mockedProvider(c), async (video, file) => {
+    repairs++;
+    assert.equal(video, world.file(`videos/${created.id}.mp4`));
+    await thumbnail(video, file);
+  });
+  await Promise.all(Array.from({ length: 5 }, () => resumed.list(world)));
+  const until = Date.now() + 3000;
+  let result = (await resumed.list(world))[0];
+  while (!result.thumbnailUrl && Date.now() < until) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    result = (await resumed.list(world))[0];
+  }
+  assert.equal(result.thumbnailUrl, `/files/${world.id}/videos/${created.id}-thumb.jpg`);
+  assert.equal((await sharp(thumb).metadata()).format, 'jpeg');
+  assert.deepEqual(await readFile(source), before);
+  assert.equal(repairs, 1);
+  assert.equal(c.submits.length, 1);
+  assert.equal(c.downloads, 1);
+});
+
+test('a failed middle-frame extraction retries without resubmitting or hiding the finished video', async () => {
+  const { world } = await worldFixture();
+  const c = calls();
+  let attempts = 0;
+  const s = new VideoService({
+    provider: mockedProvider(c), pollMs: 60_000, frameRetryMs: 20,
+    thumbnail: async (video, file) => {
+      if (++attempts < 3) throw new Error('temporarily unavailable');
+      await thumbnail(video, file);
+    },
+  });
+  services.push(s);
+  const created = await s.create(world, request());
+  await s.continue(world, created.id);
+  assert.equal((await s.list(world))[0].status, 'succeeded');
+  const until = Date.now() + 3000;
+  let result = (await s.list(world))[0];
+  while (!result.thumbnailUrl && Date.now() < until) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    result = (await s.list(world))[0];
+  }
+  assert.ok(result.thumbnailUrl);
+  assert.equal(attempts, 3);
+  assert.equal(c.submits.length, 1);
+  assert.equal(c.downloads, 1);
+});
+
+test('a missing generating snapshot is not replaced by the current slide or video frame', async () => {
+  const { world } = await worldFixture();
+  const s = service();
+  const created = await s.create(world, request());
+  await s.continue(world, created.id);
+  s.dispose();
+  const source = world.file(`videos/${created.id}-source.jpg`);
+  await rm(source);
+  await rm(world.file(`videos/${created.id}-thumb.jpg`));
+  let audited!: () => void;
+  const sourceChecked = new Promise<void>((resolve) => { audited = resolve; });
+  const resumed = service(mockedProvider(), async (video, file) => { audited(); await thumbnail(video, file); });
+  await resumed.list(world);
+  await sourceChecked;
+  await assert.rejects(readFile(source), { code: 'ENOENT' });
 });
 
 test('missing model fails clearly before an upload or paid submission', async () => {

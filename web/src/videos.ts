@@ -21,6 +21,10 @@ export interface VideoStudio {
   mountEditor(slide: SlideDoc, container: HTMLElement, options?: VideoEditorOptions): VideoEditor;
   open(slide: SlideDoc): void;
   refresh(): Promise<void>;
+  /** Follow the same persisted records as the dock, without another video poller. */
+  subscribe(listener: (jobs: readonly VideoGeneration[]) => void): () => void;
+  /** The canonical middle frame, with the studio's cached decoder fallback for older clips. */
+  thumbnail(job: VideoGeneration): Promise<string>;
   setEditable(editable: boolean): void;
   dispose(): void;
 }
@@ -570,6 +574,13 @@ export function createVideoStudio(mount: HTMLElement, worldId: string, options: 
   void refresh();
   return {
     mountEditor, open, refresh,
+    thumbnail: midpointThumbnail,
+    subscribe(listener) {
+      const update = () => listener(jobs);
+      subscribers.add(update);
+      update();
+      return () => { subscribers.delete(update); };
+    },
     setEditable(value) { editable = value; for (const render of subscribers) render(); },
     dispose() {
       if (disposed) return;

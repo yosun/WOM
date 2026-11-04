@@ -1,0 +1,23 @@
+name: WOMPar standalone demo
+
+on:
+  push:
+    paths: ['demo/wompar/**', 'demo/object-split/assets/**', '.github/workflows/wompar-demo.yml']
+  pull_request:
+    paths: ['demo/wompar/**', 'demo/object-split/assets/**', '.github/workflows/wompar-demo.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+      # Intentionally no npm install: the demo must work from a clean checkout alone.
+      - run: node --test demo/wompar/wompar.test.mjs
+      - run: node demo/wompar/wompar.mjs --offline

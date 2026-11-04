@@ -28,12 +28,14 @@ import { assetSection } from './assetpanel.ts';
 import { createObserver, type ObserveLayer } from './observe.ts';
 import { decodeView, viewLink, type ViewPose } from './viewcode.ts';
 import { createAperture } from './aperture.ts';
+import { createWorldLoading } from './world-loading.ts';
 import { paintBackdrop as paintTinyCopy, photoFrame } from './frame.ts';
 import { buildCover, dropHandoff, giveHandoff, removeCover, takeHandoff } from './slides/handoff.ts';
 import { worldHref } from './routes.ts';
 import { slideKey, spaceUrl } from './slides/spaces.ts';
 import { cameraIcon, createCaptureCard } from './capture.ts';
 import { createVideoStudio } from './videos.ts';
+import { createMemoryWaypoints } from './memory-waypoints.ts';
 import { placementAgentNeedsRun } from '../../server/src/placement.ts';
 
 /** Placement agents the viewer can run on demand; Muse estimates are benchmark means per object. */
@@ -79,6 +81,8 @@ export interface ViewerOptions {
   handle?: string | null;
   /** Who may open the world: anyone with the link, or only its owner. The owner can switch it. */
   visibility?: 'private' | 'link';
+  /** Opt-in homepage demo: a loading game and read-only world; the ready keyhole waits for a tap to enter. */
+  demo?: boolean;
 }
 
 /** The photo's own entry: the camera that took it, at the origin of the scene. */
@@ -86,8 +90,24 @@ function photoEntry(d: SceneDoc): SlideEntry {
   return { position: [0, 0, 0], quaternion: [0, 0, 0, 1], fovY: d.camera.fovY, aspect: d.image.width / d.image.height };
 }
 
+/** Release models that finish after navigation as well as those already on screen. */
+function disposeModel(root: THREE.Object3D) {
+  root.traverse((node) => {
+    if (node instanceof SplatMesh) node.dispose();
+    else if (node instanceof THREE.Mesh) {
+      node.geometry.dispose();
+      for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
+        for (const value of Object.values(material)) if (value instanceof THREE.Texture) value.dispose();
+        material.dispose();
+      }
+    }
+  });
+}
+
 export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions = {}): () => void {
   clear(root);
+  // Fail before taking a handoff or mounting UI if this browser cannot create a WebGL context.
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   let disposed = false;
   let phase: Phase = 'photo';
   const slideId = opts.slide && opts.slide !== 'photo' ? opts.slide : 'photo';
@@ -111,7 +131,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   // cover made it here.
   const ap = createAperture({
     onEnter: () => enterWorld(),
-    asleep: !handoff && !opts.from,
+    asleep: !handoff && !opts.from && !opts.demo,
     // The camera's swing starts from the photo's own viewpoint when the light comes on, not when the world loaded.
     onLit: () => { orbit.t0 = performance.now(); },
   });
@@ -121,7 +141,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   const panelBtn = h('button', { title: 'Layers and objects' }, 'Layers');
   const flagBtn = h('button', { title: 'Flag something that looks wrong here (O)' }, 'Flag a problem');
   const captureBtn = h('button.capture-button', { type: 'button', title: 'Capture this view', 'aria-label': 'Capture this view' }, cameraIcon()) as HTMLButtonElement;
-  let canEdit = opts.canEdit === true;
+  let canEdit = opts.canEdit === true && !opts.demo;
   const shareBtn = h('button', { title: 'Copy a link anyone can open' }, 'Share');
   // The owner decides who can open the link. Visitors never see this button.
   let visibility: 'private' | 'link' = opts.visibility ?? 'link';
@@ -142,9 +162,23 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   const hint = h('div.hint');
   const HINT_WALK = 'W A S D to walk · drag to look · Shift to run · F to fly · O to flag a problem';
   const HINT_FLY = 'W A S D to fly · drag to look · Q / E down and up · Shift to run · F to walk · O to flag a problem';
-  const view = h('main.viewer', stage, top, panel, hint, captureBtn, ap.el);
+  const loadError = h('div.viewer-load-error', { hidden: true, role: 'alert' },
+    h('p', 'The 3D world could not load. Please try again.'),
+    h('div.actions', h('button', { type: 'button', onclick: () => location.reload() }, 'Try again'), h('a', { href: '/#/' }, 'Back to home')));
+  const view = h('main.viewer', stage, top, panel, hint, captureBtn, ap.el, loadError);
   stage.append(backdrop, photo);
   root.append(view);
+  let loading = handoff?.loading ?? (opts.demo ? createWorldLoading(() => backLink.click()) : null);
+  if (loading) {
+    loading.setCancel(() => backLink.click());
+    loading.setStatus('Opening the world…');
+    view.classList.add('has-loading-game');
+  }
+  const endLoading = () => {
+    loading?.dispose();
+    loading = null;
+    view.classList.remove('has-loading-game');
+  };
   const videoStudio = createVideoStudio(view, id, { editable: canEdit });
   // The slide's cover sits over the stage and under the aperture until the photo and aperture show the same.
   let cover = handoff?.cover ?? null;
@@ -155,8 +189,9 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   }
 
   // ---------- three.js + Spark ----------
-  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.domElement.tabIndex = 0;
+  renderer.domElement.setAttribute('aria-label', '3D world. Drag to look around; use W A S D to move.');
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   backdrop.after(renderer.domElement);
@@ -321,6 +356,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     orbit.t0 = performance.now();
     photo.style.visibility = 'hidden'; // the aperture draws the same photo, so the swap is invisible
     ap.ignite();
+    loading?.ready();
   }
 
   /** The keyhole outline travels outward, past the photo's borders, until the world fills the screen. */
@@ -329,6 +365,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     const rest = ap.stage();
     if (rest === 'asleep') { ap.wake(); return; }
     if (rest === 'waking' || phase !== 'portal') return;
+    endLoading();
     phase = 'entering';
     enterT0 = performance.now();
     ap.expand(1250, () => {
@@ -378,6 +415,12 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   /** Stop (or resume) walking and looking, so the camera stays exactly where it is. */
   function freeze(on: boolean) {
     frozen = on;
+    // A modal can consume a key release, and controls.update is skipped while held. Clear
+    // held movement and its clock so a premiere cannot leave walking stuck or jump on return.
+    controls.fpsMovement.keydown = {};
+    controls.fpsMovement.keycode = {};
+    controls.fpsMovement.extraMove.set(0, 0, 0);
+    controls.lastTime = performance.now();
     if (on) {
       controls.fpsMovement.enable = false;
       controls.pointerControls.enable = false;
@@ -388,8 +431,15 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     }
   }
 
+  const memoryWaypoints = createMemoryWaypoints({
+    mount: view, stage, camera, canvas: renderer.domElement, worldId: id, studio: videoStudio,
+    active: () => phase === 'inside' && !editing,
+    freeze, isFrozen: () => frozen,
+  });
+
   /** Go inside without the portal animation: for links to a view, and for scripts. */
   function enterNow() {
+    endLoading();
     if (disposed || phase === 'inside') return;
     anim = null;
     phase = 'inside';
@@ -526,6 +576,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   }
 
   const onKey = (e: KeyboardEvent) => {
+    if (memoryWaypoints.isPlaying()) return;
     if ((e.target as HTMLElement)?.closest('input, select, textarea')) return;
     const k = e.key.toLowerCase();
     if (k === 'enter' && phase === 'portal') { e.preventDefault(); enterWorld(); return; }
@@ -624,6 +675,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
       }
     }
     renderer.render(scene, camera);
+    memoryWaypoints.frame(performance.now());
   });
 
   // ---------- panel ----------
@@ -805,9 +857,11 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     if (!d.world?.colliderUrl) return;
     reportProgress('collider', 0, 6e6);
     const g = await gltf.loadAsync(d.world.colliderUrl, (ev) => reportProgress('collider', ev.loaded, ev.lengthComputable ? ev.total : 6e6));
+    if (disposed) { disposeModel(g.scene); return; }
     // The collider shares the Marble splats' frame, so it gets the same rotation and metric scale.
     const toScene = new THREE.Matrix4().compose(new THREE.Vector3(), new THREE.Quaternion(...d.world.quaternion), new THREE.Vector3().setScalar(d.world.scale));
     const geometry = mergedGeometry(g.scene, toScene);
+    disposeModel(g.scene);
     worldCollider = { bvh: new MeshBVH(geometry), geometry };
     reportProgress('collider', 1, 1);
   }
@@ -855,6 +909,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
         d.world ? h('label.row', worldToggle, h('span', 'Marble world'), quality) : h('p.muted', 'No Marble world for this memory.'),
         d.relief ? h('label.row', reliefToggle, h('span', 'Depth relief')) : '',
         h('label.row', objectsToggle, h('span', 'Objects')),
+        memoryWaypoints.panel,
       ),
       h('section', h('h2', 'Movement'),
         h('label.row', walkToggle, h('span', 'Walk on the ground (F switches)')),
@@ -918,7 +973,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
         continue;
       }
       const entry = await loadObject(o, overrides.get(o.id));
-      if (disposed) return;
+      if (disposed) { disposeModel(entry.group); return; }
       // A new asset starts where the placement method in use puts it, and keeps the object's switch.
       const v = entry.placements[placementMethod] ?? entry.placements.fitter;
       if (v && !overrides.has(o.id)) {
@@ -968,9 +1023,11 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   // ---------- loading ----------
   const progress = new Map<string, { loaded: number; total: number }>();
   function reportProgress(key: string, loaded: number, total: number) {
+    if (disposed) return;
     progress.set(key, { loaded, total: Math.max(total, loaded, 1) });
     let l = 0, t = 0;
     for (const p of progress.values()) { l += p.loaded; t += p.total; }
+    loading?.progress(l, t);
     ap.setProgress(t ? Math.min(1, l / t) : 0, 'Loading the world');
   }
 
@@ -1009,6 +1066,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     if (d.world?.panoUrl) {
       try {
         const tex = await new THREE.TextureLoader().loadAsync(d.world.panoUrl);
+        if (disposed) { tex.dispose(); return; }
         tex.mapping = THREE.EquirectangularReflectionMapping;
         tex.colorSpace = THREE.SRGBColorSpace;
         scene.environment = pmrem.fromEquirectangular(tex).texture;
@@ -1018,6 +1076,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
         // fall back to the studio environment below
       }
     }
+    if (disposed) return;
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environmentIntensity = 0.8;
   }
@@ -1098,7 +1157,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     if (d.relief) {
       reportProgress('relief', 0, 4e6);
       tasks.push(gltf.loadAsync(d.relief.url, (ev) => reportProgress('relief', ev.loaded, ev.lengthComputable ? ev.total : 4e6)).then((g) => {
-        if (disposed) return;
+        if (disposed) { disposeModel(g.scene); return; }
         relief = g.scene;
         relief.traverse((n) => {
           const m = n as THREE.Mesh;
@@ -1119,18 +1178,23 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     if (d.world?.colliderUrl) tasks.push(loadWorldCollider(d).catch((err) => toast(`Could not load the world's collider: ${(err as Error).message}`, 'error')));
     for (const o of d.objects) {
       tasks.push(loadObject(o, overrideMap.get(o.id)).then((entry) => {
-        if (disposed) return;
+        if (disposed) { disposeModel(entry.group); return; }
         objectsRoot.add(entry.group);
         objects.push(entry);
       }).catch((err) => toast(`Could not load ${o.name}: ${(err as Error).message}`, 'error')));
     }
     const results = await Promise.allSettled(tasks);
     if (disposed) return;
+    loading?.setStatus('Preparing the 3D scene…');
     for (const r of results) if (r.status === 'rejected') toast(String((r.reason as Error)?.message ?? r.reason), 'error');
+    if (opts.demo && ((d.world && !world) || (!world && !relief && !objects.length))) {
+      throw new Error('The demo’s 3D scene could not be loaded.');
+    }
     objects.sort((a, b) => d.objects.findIndex((x) => x.id === a.id) - d.objects.findIndex((x) => x.id === b.id));
     placementMethod = d.placement?.active ?? 'fitter';
-    canEdit = opts.canEdit === true;
-    manifest = await api.get(id).then((r) => { canEdit = r.access.canEdit; visibility = r.access.visibility; return r.manifest; }).catch(() => null);
+    canEdit = opts.canEdit === true && !opts.demo;
+    manifest = await api.get(id).then((r) => { canEdit = r.access.canEdit && !opts.demo; visibility = r.access.visibility; return r.manifest; }).catch(() => null);
+    if (disposed) return;
     worldAgents = manifest?.options.placementAgents ?? worldAgents;
     registerColliders();
     captureBtn.hidden = !canEdit;
@@ -1171,7 +1235,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   // ---------- slides: save a view as a way into this world ----------
 
   // The flash, and the card that confirms a capture and lets it be named or taken back (capture.ts).
-  const captureCard = createCaptureCard(view, videoStudio);
+  const captureCard = createCaptureCard(view, videoStudio, { onRemove: (slideId) => memoryWaypoints.removeCapture(slideId) });
 
   /** Exactly what the camera sees now (without colliders or the edit gizmo), and the camera that sees it. */
   async function captureView(): Promise<{ blob: Blob; entry: SlideEntry }> {
@@ -1219,7 +1283,10 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
       form.append('record', JSON.stringify({ entry: shot.entry }));
       form.append('image', shot.blob, 'slide.jpg');
       const made = await api.createSlide(id, form);
-      if (!disposed) captureCard.show(made, shot.blob);
+      if (!disposed) {
+        captureCard.show(made, shot.blob);
+        memoryWaypoints.addCapture(made);
+      }
       return made;
     } catch (err) {
       toast((err as Error).message, 'error');
@@ -1232,12 +1299,16 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   captureBtn.addEventListener('click', () => void saveSlide());
 
   load().catch((err) => {
+    if (disposed) return;
+    endLoading();
     ap.fail((err as Error).message);
+    loadError.hidden = false;
     toast((err as Error).message, 'error');
   });
 
   return () => {
     disposed = true;
+    endLoading();
     // Back to the space it was played from: the slide's image stays up while the space flies it home.
     if (opts.from && memoryUrl && photo.complete && photo.naturalWidth) {
       giveHandoff({ direction: 'return', world: id, slide: slideId, from: opts.from, cover: buildCover({ image: photo, aspect: photoAspect, dormant: false }) });
@@ -1247,6 +1318,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     ro.disconnect();
     observer.dispose();
     captureCard.dispose();
+    memoryWaypoints.dispose();
     videoStudio.dispose();
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('pointermove', onLook);
@@ -1256,9 +1328,15 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     controls.pointerControls.enable = false;
     gizmo.dispose();
     world?.dispose();
-    for (const o of objects) o.group.traverse((n) => { if (n instanceof SplatMesh) n.dispose(); });
+    if (relief) disposeModel(relief);
+    for (const o of objects) disposeModel(o.group);
+    worldCollider?.geometry.dispose();
+    reliefCollider?.geometry.dispose();
     backdropTex?.dispose();
+    if (scene.environment instanceof THREE.Texture) scene.environment.dispose();
     pmrem.dispose();
+    spark.dispose();
     renderer.dispose();
+    renderer.forceContextLoss();
   };
 }

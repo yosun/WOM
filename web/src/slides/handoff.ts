@@ -11,6 +11,7 @@
 //           flies the slide back into its place from there.
 import { apertureGeometry } from '../aperture.ts';
 import type { SlideDoc } from '../api.ts';
+import type { WorldLoading } from '../world-loading.ts';
 import { h } from '../dom.ts';
 import { paintBackdrop, photoFrame } from '../frame.ts';
 import { createKeyholeMark } from './mark.ts';
@@ -25,6 +26,8 @@ export interface Handoff {
   /** The space the slide was played from. */
   from?: string;
   cover: HTMLElement;
+  /** An opt-in homepage loader stays alive, including its firefly score, while the viewer mounts. */
+  loading?: WorldLoading;
 }
 
 /** A cover nobody takes is removed after this long. */
@@ -35,7 +38,7 @@ let pending: { handoff: Handoff; timer: number } | null = null;
 export function giveHandoff(handoff: Handoff) {
   dropHandoff();
   document.body.append(handoff.cover);
-  pending = { handoff, timer: window.setTimeout(dropHandoff, STALE_MS) };
+  pending = { handoff, timer: window.setTimeout(dropHandoff, handoff.loading ? 120_000 : STALE_MS) };
 }
 
 /** The pending handoff when `wanted` accepts it; the cover is then the caller's to remove (see `removeCover`). */
@@ -51,6 +54,7 @@ export function takeHandoff(wanted: (h: Handoff) => boolean): Handoff | null {
 export function dropHandoff() {
   if (!pending) return;
   clearTimeout(pending.timer);
+  pending.handoff.loading?.dispose();
   removeCover(pending.handoff.cover);
   pending = null;
 }

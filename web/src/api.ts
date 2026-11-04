@@ -71,7 +71,7 @@ export const api = {
   setHandle: (handle: string) =>
     fetch('/api/me/handle', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ handle }) }).then((r) => json<{ user: { id: string; handle: string | null; role: 'user' | 'admin' } }>(r)),
   list: () => fetch('/api/worlds').then((r) => json<WorldSummary[]>(r)),
-  get: (id: string) => fetch(`/api/worlds/${id}`).then((r) => json<{ manifest: WorldManifest; log: string[]; running: boolean; access: { handle: string | null; visibility: 'private' | 'link'; canEdit: boolean } }>(r)),
+  get: (id: string, signal?: AbortSignal) => fetch(`/api/worlds/${id}`, { signal }).then((r) => json<{ manifest: WorldManifest; log: string[]; running: boolean; access: { handle: string | null; visibility: 'private' | 'link'; canEdit: boolean } }>(r)),
   scene: (id: string) => fetch(`/api/worlds/${id}/scene`).then((r) => json<{ scene: SceneDoc; layout: LayoutOverride[] }>(r)),
   metrics: (id: string) => fetch(`/api/worlds/${id}/metrics`).then((r) => json<WorldMetrics>(r)).then((report) => {
     if (!report || report.schema !== 'wometrics/1') throw new Error('Restart the API server to load the new WOMetrics endpoint.');

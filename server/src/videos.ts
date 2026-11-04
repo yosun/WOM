@@ -129,15 +129,22 @@ export class VideoService {
   private provider: VideoProvider;
   private thumbnail: typeof extractMiddleFrame;
   private pollMs: number;
+  private frameRetryMs: number;
   private writes = new Map<string, Promise<unknown>>();
   private running = new Map<string, Promise<void>>();
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
+  private frameQueue: Promise<void> = Promise.resolve();
+  private frameRepairs = new Map<string, Promise<void>>();
+  private frameTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private verifiedFrames = new Map<string, { size: number; mtimeMs: number }>();
+  private missingSources = new Set<string>();
   private disposed = false;
 
-  constructor(opts: { provider?: VideoProvider; thumbnail?: typeof extractMiddleFrame; pollMs?: number } = {}) {
+  constructor(opts: { provider?: VideoProvider; thumbnail?: typeof extractMiddleFrame; pollMs?: number; frameRetryMs?: number } = {}) {
     this.provider = opts.provider ?? provider;
     this.thumbnail = opts.thumbnail ?? extractMiddleFrame;
     this.pollMs = opts.pollMs ?? 5000;
+    this.frameRetryMs = opts.frameRetryMs ?? 60_000;
   }
 
   private serialized<T>(world: WorldHandle, fn: () => Promise<T>): Promise<T> {
@@ -194,8 +201,84 @@ export class VideoService {
 
   async list(world: WorldHandle): Promise<VideoGeneration[]> {
     const records = await readRecords(world);
-    for (const record of records) if (ACTIVE.has(record.status)) void this.continue(world, record.id);
+    for (const record of records) {
+      if (ACTIVE.has(record.status)) void this.continue(world, record.id);
+      else if (record.status === 'succeeded') this.repairFrames(world, record);
+    }
     return records.map(publicVideo);
+  }
+
+  /** Check once per file version, including a full decode rather than just the JPEG header. */
+  private async readableFrame(file: string, maxDimension: number): Promise<boolean> {
+    try {
+      const info = await stat(file);
+      if (!info.isFile() || !info.size) return false;
+      const previous = this.verifiedFrames.get(file);
+      if (previous?.size === info.size && previous.mtimeMs === info.mtimeMs) return true;
+      const image = sharp(file, { failOn: 'error' });
+      const meta = await image.metadata();
+      if (meta.format !== 'jpeg' || !meta.width || !meta.height || Math.max(meta.width, meta.height) > maxDimension) return false;
+      await image.stats();
+      this.verifiedFrames.set(file, { size: info.size, mtimeMs: info.mtimeMs });
+      return true;
+    } catch { return false; }
+  }
+
+  /** Serialize repairs so a large history cannot launch hundreds of ffmpeg processes at once. */
+  private repairFrames(world: WorldHandle, record: VideoRecord) {
+    const key = `${world.id}/${record.id}`;
+    if (this.disposed || this.frameRepairs.has(key) || this.frameTimers.has(key)) return;
+    const task = this.frameQueue.then(async () => {
+      if (this.disposed || !isVideoId(record.id)) return;
+      const sourceFile = `videos/${record.id}-source.jpg`;
+      const sourceUrl = `/files/${world.id}/${sourceFile}`;
+      const sourceAvailable = (!record.sourceFile || record.sourceFile === sourceFile)
+        && await this.readableFrame(world.file(sourceFile), 2048);
+      if (this.disposed) return;
+      const changes: Partial<VideoRecord> = {};
+      if (sourceAvailable) {
+        this.missingSources.delete(key);
+        if (record.sourceFile !== sourceFile || record.sourceImageUrl !== sourceUrl) Object.assign(changes, { sourceFile, sourceImageUrl: sourceUrl });
+      } else if (!this.missingSources.has(key)) {
+        // A video frame or a current slide is not necessarily the image actually sent to the provider.
+        console.warn(`[videos] ${key}: the generating first-frame snapshot is missing or unreadable.`);
+        this.missingSources.add(key);
+      }
+      // A missing video must not prevent the independently recoverable source reference from being fixed.
+      if (!this.disposed && Object.keys(changes).length) {
+        await this.patch(world, record.id, changes);
+        delete changes.sourceFile;
+        delete changes.sourceImageUrl;
+      }
+
+      const thumbnailFile = `videos/${record.id}-thumb.jpg`;
+      const thumbnailUrl = `/files/${world.id}/${thumbnailFile}`;
+      if (!await this.readableFrame(world.file(thumbnailFile), 640)) {
+        if (this.disposed) return;
+        let videoFile = record.videoFile;
+        if (!videoFile && record.videoUrl?.startsWith(`/files/${world.id}/`)) videoFile = record.videoUrl.slice(`/files/${world.id}/`.length);
+        if (!videoFile || !new RegExp(`^videos/${record.id}\\.(?:mp4|webm|mov)$`).test(videoFile)) throw new Error('The saved video is unavailable.');
+        await this.thumbnail(world.file(videoFile), world.file(thumbnailFile));
+        if (!await this.readableFrame(world.file(thumbnailFile), 640)) throw new Error('The middle frame is unreadable.');
+      }
+      if (record.thumbnailFile !== thumbnailFile || record.thumbnailUrl !== thumbnailUrl) Object.assign(changes, { thumbnailFile, thumbnailUrl });
+      if (!this.disposed && Object.keys(changes).length) await this.patch(world, record.id, changes);
+    }).catch((err: unknown) => {
+      if (this.disposed || !existsSync(world.file('manifest.json'))) return;
+      const reason = err instanceof Error ? err.message.split('\n')[0].slice(0, 200) : 'unknown error';
+      console.warn(`[videos] ${key}: middle-frame thumbnail unavailable (${reason}); retrying later.`);
+      const timer = setTimeout(() => {
+        this.frameTimers.delete(key);
+        void readRecords(world).then((records) => {
+          const current = records.find((r) => r.id === record.id && r.status === 'succeeded');
+          if (current) this.repairFrames(world, current);
+        }).catch(() => { /* The next history read can retry. */ });
+      }, this.frameRetryMs);
+      timer.unref();
+      this.frameTimers.set(key, timer);
+    }).finally(() => { this.frameRepairs.delete(key); });
+    this.frameRepairs.set(key, task);
+    this.frameQueue = task;
   }
 
   private schedule(world: WorldHandle, id: string) {
@@ -315,13 +398,19 @@ export class VideoService {
       try { await this.thumbnail(world.file(videoFile), world.file(thumbnailFile)); hasThumbnail = true; }
       catch { console.warn(`[videos] ${world.id}/${id}: middle-frame thumbnail unavailable; the browser can extract it.`); }
     }
-    await this.patch(world, id, {
+    r = await this.patch(world, id, {
       status: 'succeeded', videoUrl: `/files/${world.id}/${videoFile}`, error: undefined,
       ...(hasThumbnail ? { thumbnailFile, thumbnailUrl: `/files/${world.id}/${thumbnailFile}` } : {}),
     });
+    this.repairFrames(world, r);
   }
 
-  dispose() { this.disposed = true; for (const timer of this.timers.values()) clearTimeout(timer); this.timers.clear(); }
+  dispose() {
+    this.disposed = true;
+    for (const timer of [...this.timers.values(), ...this.frameTimers.values()]) clearTimeout(timer);
+    this.timers.clear();
+    this.frameTimers.clear();
+  }
 }
 
 const videos = new VideoService();

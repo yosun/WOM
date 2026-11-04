@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore WOMPar with a saved reconstruction example, or download the standalone demo and run it with one API key.">
+  <title>Try WOMPar · World of a Memory</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #12100e; color: #f3ebe0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; line-height: 1.65; }
+    a { color: #f0cf9c; }
+    main { max-width: 1040px; margin: 0 auto; padding: 34px 24px 80px; }
+    nav { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; }
+    nav a { text-decoration: none; }
+    .eyebrow { margin: 78px 0 10px; color: #e8b26a; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2 { font-family: Georgia, serif; font-weight: 400; line-height: 1.12; }
+    h1 { max-width: 800px; font-size: clamp(42px, 7vw, 72px); letter-spacing: -.04em; margin: 0 0 24px; }
+    h1 em { color: #f0cf9c; }
+    .intro { color: #c5b9a8; max-width: 700px; font-size: 18px; }
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 54px; }
+    article { min-width: 0; padding: 27px; border: 1px solid #ffffff20; border-radius: 16px; background: #1b1815; }
+    article h2 { margin: 0 0 14px; font-size: 27px; }
+    article p, .note { color: #c5b9a8; }
+    .action { display: inline-flex; margin-top: 12px; padding: 10px 18px; border-radius: 999px; border: 1px solid #f0cf9c66; text-decoration: none; }
+    .action:hover { background: #f0cf9c18; }
+    pre { overflow-x: auto; padding: 15px; border-radius: 8px; background: #100e0c; color: #f3ebe0; font-size: 13px; }
+    .note { max-width: 760px; margin-top: 32px; font-size: 14px; }
+    @media (max-width: 680px) { .cards { grid-template-columns: minmax(0, 1fr); } .eyebrow { margin-top: 56px; } }
+  </style>
+</head>
+<body><main>
+  <nav><a href="/">← World of a Memory</a><a href="/api/wometrics/setup-schema">Contributor format</a></nav>
+  <p class="eyebrow">World Observation Metrics · WOMPar</p>
+  <h1>A shared reference for <em>reconstructed worlds.</em></h1>
+  <p class="intro">Explore a saved reconstruction comparison, then run the standalone demo yourself. WOMPar defines a frozen reference at zero; lower scores mean a method is preferred over that reference.</p>
+  <div class="cards">
+    <article>
+      <h2>Explore the saved example</h2>
+      <p>See the source photograph, two reconstruction renders, and saved diagnostic measurements. The example is offline and makes no model calls.</p>
+      <a class="action" href="/wompar/offline.html">Open the example ↗</a>
+    </article>
+    <article>
+      <h2>Run the demo locally</h2>
+      <p>Download the self-contained demo. Node 22.18 or newer is required; the offline example needs no API key or dependency installation.</p>
+      <a class="action" href="/wompar/wompar-demo.tar.gz" download>Download the demo ↓</a>
+      <pre>tar -xzf wompar-demo.tar.gz
+cd wompar-demo
+node demo/wompar/wompar.mjs --offline</pre>
+      <p>To run a fresh comparison or generation, add one supported provider key on your own computer. Provider charges may apply.</p>
+    </article>
+  </div>
+  <p class="note">The saved example compares one source view; it is not a global ranking. A full WOMPar score requires the complete frozen course and the prescribed judging evidence.</p>
+</main></body></html>

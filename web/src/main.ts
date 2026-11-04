@@ -1,22 +1,16 @@
 import './styles.css';
-import '@wom/metrics/web/styles.css';
-import { matchMetricsRoute, mountMetrics, WOM_TITLE } from '@wom/metrics/web';
 import { api } from './api.ts';
 import { initializeAuth } from './auth.ts';
-import { renderBuild } from './build.ts';
-import { clear } from './dom.ts';
+import { clear, h } from './dom.ts';
 import { renderHome } from './home.ts';
-import { renderObservations } from './observations.ts';
 import { dropHandoff } from './slides/handoff.ts';
-import { renderSpace } from './slides/page.ts';
-import { renderViewer } from './viewer.ts';
 import { sameOriginPath, parseLegacyWorldHash, parseWorldPath, worldHref } from './routes.ts';
-import { wom } from './wom.ts';
 
 const root = document.getElementById('app')!;
 /** The home page's title. web/index.html has the same text, which is what crawlers that do not run this script read. */
-const HOME_TITLE = 'World of a Memory: Step Inside a Photo';
+const HOME_TITLE = 'World of a Memory: Beyond the Photograph';
 let teardown: (() => void) | null = null;
+let routeVersion = 0;
 
 /** ?debug (the switch for scripts and agents) stays on as the page changes, as it did while only the hash changed. */
 function keepDebug(href: string): string {
@@ -34,6 +28,23 @@ function navigate(href: string, replace = false) {
 }
 
 async function route() {
+  const version = ++routeVersion;
+  try {
+    await renderRoute(version);
+  } catch {
+    if (version !== routeVersion) return;
+    teardown?.();
+    teardown = null;
+    dropHandoff();
+    clear(root);
+    document.body.className = 'page-build';
+    root.append(h('main.build', h('h1', 'This page could not open.'),
+      h('p.note', 'Please try again. The connection may have been interrupted.'),
+      h('div.actions', h('button', { type: 'button', onclick: () => location.reload() }, 'Try again'), h('a', { href: '/#/' }, 'Back to home'))));
+  }
+}
+
+async function renderRoute(version: number) {
   // Old bookmarks are still useful. Convert them once, before any page is mounted, so reloads become real paths.
   const legacy = parseLegacyWorldHash();
   if (legacy) {
@@ -52,6 +63,8 @@ async function route() {
   const space = /^#\/space(?:\/([a-z0-9]+(?:\/[a-z0-9]+)*))?\/?(?:\?(.*))?$/.exec(hash);
   if (!pathWorld && space) {
     document.body.className = 'page-space';
+    const { renderSpace } = await import('./slides/page.ts');
+    if (version !== routeVersion) return;
     teardown = renderSpace(root, space[1] ?? 'all', new URLSearchParams(space[2] ?? ''), navigate);
     return;
   }
@@ -62,15 +75,25 @@ async function route() {
   if (!world) dropHandoff();
 
   // #/bench, #/bench/<run>, #/bench/<tab> or #/bench/<run>/<tab>: WOM, World Observation Metrics (@wom/metrics).
-  const bench = !pathWorld ? matchMetricsRoute(hash) : null;
-  if (bench) {
-    document.title = WOM_TITLE;
-    document.body.className = 'page-build';
-    teardown = mountMetrics(root, bench, wom);
-    return;
+  if (!pathWorld && /^#\/bench(?:\/|$)/.test(hash)) {
+    const [{ matchMetricsRoute, mountMetrics, WOM_TITLE }, { wom }] = await Promise.all([
+      import('@wom/metrics/web'), import('./wom.ts'), import('@wom/metrics/web/styles.css'),
+    ]);
+    if (version !== routeVersion) return;
+    const bench = matchMetricsRoute(hash);
+    if (bench) {
+      document.title = WOM_TITLE;
+      document.body.className = 'page-build';
+      teardown = mountMetrics(root, bench, wom);
+      return;
+    }
   }
   const obs = !pathWorld ? /^#\/observations(?:\/([a-z0-9]+))?$/.exec(hash) : null;
   if (obs) {
+    const [{ renderObservations }, { WOM_TITLE }] = await Promise.all([
+      import('./observations.ts'), import('@wom/metrics/web'), import('@wom/metrics/web/styles.css'),
+    ]);
+    if (version !== routeVersion) return;
     document.title = `Observations · ${WOM_TITLE}`;
     document.body.className = 'page-build';
     teardown = renderObservations(root, obs[1]);
@@ -79,7 +102,7 @@ async function route() {
   if (!world) {
     document.title = HOME_TITLE;
     document.body.className = 'page-home';
-    teardown = renderHome(root);
+    teardown = renderHome(root, navigate);
     return;
   }
 
@@ -90,6 +113,7 @@ async function route() {
   let info: Awaited<ReturnType<typeof api.get>> | null = null;
   try {
     info = await api.get(id);
+    if (version !== routeVersion) return;
     ready = Boolean(info.manifest.scene) && !info.running;
     // A link copied as /u/-/<id> settles on the owner's current handle. The server does this on a full request; this
     // also keeps a single-page navigation canonical without a round trip through the HTML route.
@@ -97,6 +121,7 @@ async function route() {
       history.replaceState(null, '', worldHref(id, { handle: info.access.handle, build: forceBuild, query }));
     }
   } catch {
+    if (version !== routeVersion) return;
     dropHandoff();
     if (pathWorld) navigate('/', true);
     else location.hash = '#/';
@@ -105,6 +130,8 @@ async function route() {
   if (ready && !forceBuild) {
     const from = query.get('from');
     document.body.className = 'page-viewer';
+    const { renderViewer } = await import('./viewer.ts');
+    if (version !== routeVersion) return;
     teardown = renderViewer(root, id, {
       view: query.get('view') ?? undefined,
       compare: query.get('compare') ?? undefined,
@@ -113,10 +140,13 @@ async function route() {
       canEdit: info!.access.canEdit,
       handle: info!.access.handle,
       visibility: info!.access.visibility,
+      demo: query.get('demo') === '1',
     });
   } else {
     dropHandoff();
     document.body.className = 'page-build';
+    const { renderBuild } = await import('./build.ts');
+    if (version !== routeVersion) return;
     teardown = renderBuild(root, id, () => navigate(worldHref(id, { handle: world.handle, query })), info!.access.canEdit, query.get('refine') === '1' || query.get('tab') === 'build-details');
   }
 }
