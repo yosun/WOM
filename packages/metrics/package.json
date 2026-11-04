@@ -1,0 +1,22 @@
+{
+  "name": "@wom/metrics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WOM: World Observation Metrics. A benchmark framework for rebuilt worlds: it measures whatever model, agent or process you plug in, keeps the runs, the spend and the observations, and ships the dashboard that reads them.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./core": "./src/core/index.ts",
+    "./web": "./src/web/index.ts",
+    "./web/styles.css": "./src/web/styles.css"
+  },
+  "peerDependencies": {
+    "hono": "^4.13.16"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.web.json"
+  }
+}
