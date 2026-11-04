@@ -1,4 +1,4 @@
-// Load MoGe-2 outputs (points.exr, depth.exr, mask.png, normal.exr) into top-down arrays
+// Load MoGe-2 / MoGe-3 outputs (points.exr, depth.exr, mask.png, normal.exr) into top-down arrays
 // and estimate the camera intrinsics the point map implies.
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';

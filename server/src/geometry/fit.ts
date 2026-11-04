@@ -10,6 +10,7 @@
 import type { Mask } from './mask.ts';
 import { axisAngle, fromColumns, mul, normalize, rotationBetween, type Mat3, type Vec3 } from './math.ts';
 import type { Intrinsics } from './moge.ts';
+import { uprightBasis } from './pose.ts';
 import { renderShape, shapeBounds, shapePositions, withPositions, type Pose, type RenderWindow, type Shape } from './raster.ts';
 
 /** Tripo meshes: model (+X front, +Y up, +Z viewer-left) to OpenCV camera frame for a frontal, upright view. */
@@ -36,6 +37,13 @@ export interface FitInputs {
   depth: Float32Array;
   valid: Uint8Array;
   alignImage: boolean;
+  /**
+   * Gravity up in the camera frame. When set, the object stays upright: yaw turns it about gravity and
+   * pitch stays 0, and `base` must map raw coordinates to the canonical +Y-up frame (see pose.ts).
+   */
+  upright?: Vec3;
+  /** Search yaw only within ±window degrees of center (upright yaw convention when `upright` is set); window 0 fixes it. */
+  yawRange?: { center: number; window: number };
   log?: (msg: string) => void;
 }
 
@@ -158,6 +166,10 @@ export function fitObject(inp: FitInputs): FitResult | null {
 
   const poseOf = (p: Params): Pose => {
     const d = rayAt(p.u, p.v);
+    if (inp.upright) {
+      const c: Vec3 = [(d[0] * p.z) / d[2], (d[1] * p.z) / d[2], p.z];
+      return { R: mul(uprightBasis(c, inp.upright), mul(axisAngle([0, 1, 0], (p.yaw * Math.PI) / 180), R_BASE)), t: c, s: Math.exp(p.logS) };
+    }
     const Rview = rotationBetween([0, 0, 1], d);
     // Yaw about the camera's vertical axis, pitch about its horizontal axis (both in the view-aligned frame).
     const Radj = mul(axisAngle([1, 0, 0], (p.pitch * Math.PI) / 180), axisAngle([0, 1, 0], (p.yaw * Math.PI) / 180));
@@ -241,8 +253,14 @@ export function fitObject(inp: FitInputs): FitResult | null {
   const start: Params = { yaw: 0, pitch: 0, logS: initLogS, u: (box.x0 + box.x1) / 2, v: (box.y0 + box.y1) / 2, z: z0 * 1.05 };
 
   // Coarse orientation search.
-  const yaws = inp.alignImage ? [0, -25, 25, -50, 50, 180] : [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
-  const pitches = inp.alignImage ? [0] : [-20, 0, 20];
+  let yaws = inp.alignImage ? [0, -25, 25, -50, 50, 180] : [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+  const yr = inp.yawRange;
+  if (yr) {
+    yaws = [];
+    const stepDeg = Math.max(5, yr.window / 3);
+    for (let dYaw = -yr.window; dYaw <= yr.window + 1e-9; dYaw += stepDeg) yaws.push(yr.center + dYaw);
+  }
+  const pitches = inp.upright || inp.alignImage ? [0] : [-20, 0, 20];
   let best: { p: Params; e: Eval } | null = null;
   for (const yaw of yaws) {
     for (const pitch of pitches) {
@@ -255,12 +273,13 @@ export function fitObject(inp: FitInputs): FitResult | null {
 
   // Local refinement by coordinate descent.
   const steps: Record<keyof Params, number> = { yaw: 10, pitch: 6, logS: 0.06, u: bw * 0.03, v: bh * 0.03, z: 0 };
-  const keys: (keyof Params)[] = ['logS', 'u', 'v', 'yaw', 'pitch'];
+  const keys: (keyof Params)[] = (inp.upright ? ['logS', 'u', 'v', 'yaw'] : ['logS', 'u', 'v', 'yaw', 'pitch']).filter((key) => !(key === 'yaw' && yr?.window === 0)) as (keyof Params)[];
   for (let round = 0; round < 14; round++) {
     let improved = false;
     for (const key of keys) {
       for (const dir of [1, -1]) {
         let cand: Params = { ...best.p, [key]: best.p[key] + dir * steps[key] };
+        if (yr && key === 'yaw' && Math.abs(cand.yaw - yr.center) > yr.window + 10) continue;
         // Turning the model changes its silhouette size and offset; re-fit those before judging the turn.
         if (key === 'yaw' || key === 'pitch') cand = snapToBox(cand);
         const e = evaluate(cand, true);
