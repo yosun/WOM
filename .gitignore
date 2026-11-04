@@ -21,6 +21,9 @@ service-account*.json
 # billing project that only this machine's gcloud login can use (copy .kiro/gcp-project.example.json to create it).
 .kiro/settings/
 .kiro/gcp-project.json
+# The production runbook and scripts. They name this deployment's cloud account and resources, so they stay out of the
+# public repository.
+deploy/
 # Local test photos. Phone photos carry GPS and device metadata.
 _testers/
 # Stray curl cookie jars: `curl -c <name>` run with an HTTP status as the name leaves bare three-digit files in the root.

@@ -5,7 +5,7 @@
 //   node scripts/import-worlds.mjs --owner yosun <world-id> ...      only these
 //
 // Worlds are shared by link, like any world. The files themselves are not moved: on a server, copy data/worlds/<id> to the same
-// place under the server's data directory first (deploy/README.md). Safe to run again: it refreshes the stored manifest and never
+// place under the server's data directory first. Safe to run again: it refreshes the stored manifest and never
 // changes a world's owner, visibility or takedown. Uses DATABASE_URL_ADMIN from the env file and prints no secrets.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
