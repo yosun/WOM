@@ -5,7 +5,8 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { BudgetExceeded, Spend as BaseSpend } from '@wom/metrics';
-import { chatCompletion, type ChatRequest, type ChatResult } from '../clients/meta.ts';
+import type { ChatRequest, ChatResult } from '../clients/meta.ts';
+import { modelCompletion, modelProvider } from '../clients/llm.ts';
 import { DATA_DIR } from '../config.ts';
 import { ledger } from '../ledger.ts';
 
@@ -42,8 +43,8 @@ function estimateUsd(req: ChatRequest) {
   const textChars = JSON.stringify(normalize(req)).length;
   const inTok = textChars / 3.5 + images * 1800;
   const outTok = req.maxTokens ?? 16000;
-  const [pin, pout] = req.model.startsWith('muse-wonder') ? [4, 20] : [1.25, 4.25];
-  return (inTok * pin + Math.min(outTok, 12000) * pout) / 1e6;
+  const [pin, pout] = req.model === 'gpt-6.1-sol' ? [2, 10] : req.model.startsWith('muse-wonder') ? [4, 20] : [1.25, 4.25];
+  return (inTok * pin + outTok * pout) / 1e6;
 }
 
 /** `ledger: false` when the caller records the cost itself (the pipeline does, per world). */
@@ -55,10 +56,10 @@ export async function cachedChat(req: ChatRequest, ctx: { spend: BaseSpend; fres
       estimateUsd: estimateUsd(req),
       namespace: 'llm',
       costOf: (v) => v.costUsd,
-      ledger: ctx.ledger === false ? false : { context: 'bench', provider: 'meta', model: req.model },
+      ledger: ctx.ledger === false ? false : { context: 'bench', provider: modelProvider(req.model), model: req.model },
     },
     async () => {
-      const value = await chatCompletion(req);
+      const value = await modelCompletion(req);
       return { value, costUsd: value.costUsd };
     },
     { fresh: ctx.fresh },

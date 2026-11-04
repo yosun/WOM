@@ -79,7 +79,7 @@ async function route() {
   if (!world) {
     document.title = HOME_TITLE;
     document.body.className = 'page-home';
-    renderHome(root);
+    teardown = renderHome(root);
     return;
   }
 
@@ -117,7 +117,7 @@ async function route() {
   } else {
     dropHandoff();
     document.body.className = 'page-build';
-    teardown = renderBuild(root, id, () => navigate(worldHref(id, { handle: world.handle, query })));
+    teardown = renderBuild(root, id, () => navigate(worldHref(id, { handle: world.handle, query })), info!.access.canEdit, query.get('refine') === '1' || query.get('tab') === 'build-details');
   }
 }
 

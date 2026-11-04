@@ -28,7 +28,7 @@ export interface StepState {
 
 export const STEP_ORDER: { id: StepId; label: string }[] = [
   { id: 'prepare', label: 'Preparing the photo' },
-  { id: 'analyze', label: 'Muse Spark reads the memory' },
+  { id: 'analyze', label: 'Planning the memory' },
   { id: 'segment', label: 'SAM 3.1 outlines each object' },
   { id: 'split', label: 'SAM 3.1 splits people into head and body' },
   { id: 'cleanplate', label: 'Muse Image clears the scene' },
@@ -46,19 +46,22 @@ export const STEP_ORDER: { id: StepId; label: string }[] = [
  *   grounded      the same fit kept upright and resting on the ground plane
  *   agent-spark   Muse Spark with tools (render and score, run the fitter, read depth)
  *   agent-wonder  Muse Wonder with the same tools
+ *   agent-sol     GPT-6.1 Sol with the same tools, through OpenAI Responses
  */
-export type PlacementMethod = 'fitter' | 'grounded' | 'agent-spark' | 'agent-wonder';
+export type PlacementMethod = 'fitter' | 'grounded' | 'agent-spark' | 'agent-wonder' | 'agent-sol';
 
 export const PLACEMENT_METHODS: { id: PlacementMethod; label: string }[] = [
   { id: 'fitter', label: 'Fitter, matched to depth' },
   { id: 'grounded', label: 'Fitter, standing on the ground' },
   { id: 'agent-spark', label: 'Muse Spark agent' },
   { id: 'agent-wonder', label: 'Muse Wonder agent' },
+  { id: 'agent-sol', label: 'GPT-6.1 Sol agent' },
 ];
 
 export const AGENT_PLACEMENTS: Record<PlannerModel, PlacementMethod> = {
   'muse-spark-1.3': 'agent-spark',
   'muse-wonder-1.0': 'agent-wonder',
+  'gpt-6.1-sol': 'agent-sol',
 };
 
 export interface PlacementVariant {
@@ -74,9 +77,17 @@ export interface PlacementVariant {
   heightM: number;
   /** For agents: what they based the answer on, in their words. */
   note?: string;
+  /** Which placement-agent technique produced this result; absent on older worlds. */
+  agentRevision?: string;
 }
 
-export type PlannerModel = 'muse-spark-1.3' | 'muse-wonder-1.0';
+export const PLANNER_MODELS = ['muse-spark-1.3', 'muse-wonder-1.0', 'gpt-6.1-sol'] as const;
+export type PlannerModel = typeof PLANNER_MODELS[number];
+export const MODEL_LABELS: Record<PlannerModel, string> = {
+  'muse-spark-1.3': 'Muse Spark 1.3',
+  'muse-wonder-1.0': 'Muse Wonder 1.0',
+  'gpt-6.1-sol': 'GPT-6.1 Sol',
+};
 // Object generators on AI3D. idol and triposplat return Gaussian splats; the Tripo models return textured meshes.
 // tripo-v31 and tripo-p1 run on fal; the native Tripo IDs are accepted for completeness.
 export type MeshModel = 'idol' | 'triposplat' | 'tripo-v31' | 'tripo-p1' | 'tripo-h31-image' | 'tripo-p1-image';
@@ -108,7 +119,7 @@ export interface Box {
   y1: number;
 }
 
-/** One object Muse Spark chose to reconstruct as its own mesh. Boxes and points use the 0-1000 grid. */
+/** One object the scene director chose to reconstruct. Boxes and points use the 0-1000 grid. */
 export interface PlannedObject {
   id: string;
   name: string;
@@ -320,7 +331,7 @@ export interface PhotoAuxRecord {
 export interface CostItem {
   label: string;
   usd: number;
-  provider: 'meta' | 'ai3d';
+  provider: 'meta' | 'ai3d' | 'openai';
   estimated: boolean;
 }
 
@@ -741,4 +752,26 @@ export interface SlideDoc {
   createdAt: string;
   image: { url: string; thumb: string; width: number; height: number };
   entry: SlideEntry;
+}
+
+// ---------- videos made from a slide's first frame ----------
+
+export type VideoGenerationStatus = 'queued' | 'uploading' | 'generating' | 'saving' | 'succeeded' | 'failed' | 'submission_unknown';
+
+/** Public video history. Provider job IDs and signed upload/download URLs stay on the server. */
+export interface VideoGeneration {
+  id: string;
+  world: string;
+  slideId: string;
+  title: string;
+  prompt: string;
+  status: VideoGenerationStatus;
+  createdAt: string;
+  updatedAt: string;
+  /** An immutable copy of this generation's first frame, even after its capture is deleted. */
+  sourceImageUrl: string;
+  videoUrl?: string;
+  /** A frame from the middle of the completed video, never its shared first frame. */
+  thumbnailUrl?: string;
+  error?: string;
 }

@@ -15,11 +15,11 @@ import sharp from 'sharp';
 import { getWorld, listWorlds, type WorldHandle } from './store.ts';
 import type { SceneDoc, SlideDoc, SlideEntry, SlideRecord, WorldManifest } from './types.ts';
 import { nowIso, writeFileAtomic } from './util.ts';
+import { characterCount, MAX_SLIDE_TITLE_CHARS, MAX_VIDEO_PROMPT_CHARS } from './video-limits.ts';
 
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_SLIDES_PER_WORLD = 200;
-const MAX_TITLE_CHARS = 120;
-const MAX_CAPTION_CHARS = 2000;
+const MAX_CAPTION_CHARS = MAX_VIDEO_PROMPT_CHARS;
 const IMAGE_PX = 2048;
 const THUMB_PX = 640;
 /** How far the image's shape may be from the camera's before the slide is refused. */
@@ -227,22 +227,22 @@ function numIn(v: unknown, lo: number, hi: number, what: string): number {
  *    The names are read back by scripts and agents, which would see what a person cannot.
  *  - The zero-width joiner and non-joiner stay, because emoji sequences and some scripts (Persian, Hindi) need
  *    them. A name with nothing but those, spaces and other invisible characters is refused.
- * The cut counts characters, so it never splits an emoji in half.
+ * The limit counts Unicode characters, so it never splits an emoji in half.
  */
 export function cleanTitle(v: unknown): string | undefined {
   if (v === undefined || v === null) return undefined;
   if (typeof v !== 'string') return fail('title must be text');
+  if (characterCount(v) > MAX_SLIDE_TITLE_CHARS) return fail(`title must be at most ${MAX_SLIDE_TITLE_CHARS} characters`, 413);
   const oneLine = v
     .replace(/[\u{e0000}-\u{e007f}\u2060-\u2064\u200b\u00ad\ufeff\u180e]/gu, '')
     .replace(/[\p{Cc}\u2028\u2029\u202a-\u202e\u2066-\u2069\s]+/gu, ' ')
     .trim();
-  const cut = [...oneLine].slice(0, MAX_TITLE_CHARS).join('').trim();
   // Something a person can see: a letter, number, mark, punctuation or symbol (an emoji is a symbol).
-  return /[\p{L}\p{N}\p{M}\p{P}\p{S}]/u.test(cut) ? cut : undefined;
+  return /[\p{L}\p{N}\p{M}\p{P}\p{S}]/u.test(oneLine) ? oneLine : undefined;
 }
 
 /**
- * A caption is optional, can span lines, and is limited to 2,000 Unicode code points. Hidden Unicode is removed
+ * A caption is optional, can span lines, and is limited to 16,000 Unicode code points. Hidden Unicode is removed
  * so a person and a script read the same words; ordinary spaces and line breaks remain useful in a caption.
  */
 export function cleanCaption(v: unknown): string | undefined {

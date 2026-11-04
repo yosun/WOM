@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { uploadImage } from '../clients/ai3d.ts';
 import { toDataUrl } from '../clients/meta.ts';
+import { modelProvider } from '../clients/llm.ts';
 import { MAX_PARALLEL_MESH_JOBS, STORE } from '../config.ts';
 import { refundWorld } from '../credits.ts';
 import { maskFromPng, maskToPng } from '../geometry/mask.ts';
@@ -197,13 +198,13 @@ async function analyze(world: WorldHandle) {
   const small = await sharp(world.file(m.image.file)).resize(1536, 1536, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
   const splittable = m.options.splitPeople && OBJECT_MODELS[m.options.meshModel].kind === 'splat';
   const { plan, costUsd } = await analyzeScene({ imageJpeg: small, model: m.options.plannerModel, maxObjects: m.options.maxObjects, splitPeople: splittable });
-  await world.addCost({ label: `${m.options.plannerModel} scene plan`, usd: costUsd, provider: 'meta', estimated: false });
+  await world.addCost({ label: `${m.options.plannerModel} scene plan`, usd: costUsd, provider: modelProvider(m.options.plannerModel), estimated: false });
   await world.update((mm) => {
     mm.plan = plan;
     mm.title = plan.title;
     mm.objects = plan.objects.map((o) => ({ id: o.id, name: o.name, status: 'pending' }));
   });
-  world.log(`Muse Spark planned "${plan.title}" with ${plan.objects.length} object(s): ${plan.objects.map((o) => o.name).join(', ') || 'none'}`);
+  world.log(`${m.options.plannerModel} planned "${plan.title}" with ${plan.objects.length} object(s): ${plan.objects.map((o) => o.name).join(', ') || 'none'}`);
   return `${plan.objects.length} object(s): ${plan.objects.map((o) => o.name).join(', ') || 'background only'}`;
 }
 

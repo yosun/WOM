@@ -99,6 +99,8 @@ export interface LabelSpec {
 export interface ArtifactSpec {
   id: string;
   label: string;
+  /** Images are embedded by default; documents and raw data should be ordinary links. */
+  kind?: 'image' | 'file';
 }
 
 /** What a run and the dashboard need to know about a task. */
@@ -261,6 +263,8 @@ export interface CaseView {
 export interface HeatTable {
   id: string;
   title: string;
+  /** Metric id for colour direction/range. Without one, values are treated as higher-is-better shares. */
+  metric?: string;
   caption?: string;
   columns: { id: string; label: string }[];
   rows: {
@@ -279,6 +283,8 @@ export interface Insight {
 }
 
 export interface Extras {
+  /** Essential interpretation, shown above a task's results. */
+  notice?: string;
   tables: HeatTable[];
   /** Heading and lead-in for the tables, shown once above them. */
   tablesTitle?: string;

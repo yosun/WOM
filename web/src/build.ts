@@ -1,13 +1,14 @@
-// Build progress view: pipeline steps, intermediate artifacts, costs and the live log.
+// Every generation opens on WOMetrics. Build details and refinement have their own owner-only tab.
 import { api, subscribe, type WorldManifest } from './api.ts';
 import { clear, fmtDuration, fmtUsd, h, toast } from './dom.ts';
 import { assetCheckLine } from './assetpanel.ts';
 import { modelLabel, OBJECT_PRICE_USD, openMaskEditor } from './maskeditor.ts';
 import { STEP_ORDER } from '../../server/src/types.ts';
+import { mountWorldMetrics } from './wometrics.ts';
 
 const ICON: Record<string, string> = { pending: '○', running: '◐', done: '●', failed: '✕', skipped: '–' };
 
-export function renderBuild(root: HTMLElement, id: string, onReady: () => void): () => void {
+export function renderBuild(root: HTMLElement, id: string, onReady: () => void, canEdit = true, showRefinement = false): () => void {
   clear(root);
   const steps = h('ol.steps');
   const header = h('header.build-head');
@@ -15,14 +16,58 @@ export function renderBuild(root: HTMLElement, id: string, onReady: () => void):
   const logEl = h('pre.log');
   const costEl = h('div.cost');
   const actions = h('div.build-actions');
-  const page = h('main.build', header, h('div.build-grid', h('section.panel', h('h2', 'Progress'), steps, costEl, actions), h('section.panel.wide', h('h2', 'What WOM sees'), gallery)), h('details.panel.log-wrap', h('summary', 'Pipeline log'), logEl));
+  const metricsHost = h('section.wm-metrics', { id: `metrics-${id}`, role: 'tabpanel', 'aria-labelledby': `metrics-tab-${id}` });
+  const buildDetails = h('section.wm-build-details', { id: `details-${id}`, role: 'tabpanel', 'aria-labelledby': `details-tab-${id}` }, h('h2', 'Build Details'),
+    h('div.build-grid', h('section.panel', h('h2', 'Progress'), steps, costEl), h('section.panel.wide', h('h2', 'What WOM sees'), gallery)),
+    h('details.panel.log-wrap', h('summary', 'Pipeline log'), logEl));
+  const metricsTab = h('button', { type: 'button', role: 'tab', id: `metrics-tab-${id}`, 'aria-controls': metricsHost.id, onclick: () => selectTab('wometrics') }, 'WOMetrics');
+  const detailsTab = h('button', { type: 'button', role: 'tab', id: `details-tab-${id}`, 'aria-controls': buildDetails.id, onclick: () => selectTab('build-details') }, 'Build Details');
+  const tabs = h('nav.wm-tabs', { role: 'tablist', 'aria-label': 'World report' }, metricsTab, canEdit ? detailsTab : null);
+  const page = h('main.build.wometrics', header, tabs, metricsHost, canEdit ? buildDetails : null);
   root.append(page);
 
   let manifest: WorldManifest | null = null;
   let running = false;
   let lastSceneVersion = 0;
+  let disposed = false;
+  let selected: 'wometrics' | 'build-details' = showRefinement && canEdit ? 'build-details' : 'wometrics';
   const lines: string[] = [];
-  const tick = setInterval(() => manifest && renderSteps(), 1000);
+  const tick = setInterval(() => manifest && canEdit && running && renderSteps(), 1000);
+  const metrics = mountWorldMetrics(metricsHost, id, canEdit, (r) => {
+    if (!canEdit && manifest) {
+      manifest = { ...manifest, title: r.title, status: r.status, scene: r.sceneVersion === null ? undefined : { file: 'scene.json', version: r.sceneVersion } };
+      running = r.running;
+      render();
+    }
+  });
+
+  function selectTab(next: typeof selected, updateUrl = true) {
+    selected = next === 'build-details' && canEdit ? next : 'wometrics';
+    metricsHost.hidden = selected !== 'wometrics';
+    buildDetails.hidden = selected !== 'build-details';
+    for (const [tab, active] of [[metricsTab, selected === 'wometrics'], [detailsTab, selected === 'build-details']] as const) {
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+    }
+    if (manifest) document.title = `${selected === 'wometrics' ? 'WOMetrics' : 'Build Details'} · ${manifest.title}`;
+    if (updateUrl) {
+      const url = new URL(location.href);
+      url.searchParams.delete('refine');
+      if (selected === 'build-details') url.searchParams.set('tab', 'build-details');
+      else url.searchParams.delete('tab');
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+  }
+  tabs.addEventListener('keydown', (event) => {
+    const buttons = canEdit ? [metricsTab, detailsTab] : [metricsTab];
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+    selectTab(next === 0 ? 'wometrics' : 'build-details');
+    buttons[next].focus();
+  });
+  selectTab(selected, false);
 
   const file = (rel?: string) => (rel ? `/files/${id}/${rel}` : '');
 
@@ -46,25 +91,20 @@ export function renderBuild(root: HTMLElement, id: string, onReady: () => void):
 
   function render() {
     const m = manifest!;
+    document.title = `${selected === 'wometrics' ? 'WOMetrics' : 'Build Details'} · ${m.title}`;
     clear(header);
     header.append(
-      h('a.back', { href: '#/' }, '← All worlds'),
-      h('h1', m.title),
+      h('div.wm-header-nav', h('a.back', { href: '#/' }, '← All worlds'), h('span.muted', 'One format for every setup.')),
+      h('p.wm-brand', 'World of a Memory'),
+      h('h1', 'WOMetrics'),
+      h('h2.wm-world-title', m.title),
       m.plan?.summary ? h('p.lede', m.plan.summary) : '',
       h('div.status-line', { class: m.status }, running ? 'Building your world…' : m.status === 'failed' ? `Stopped: ${m.error ?? 'unknown error'}` : m.status === 'partial' ? 'Ready, with some parts missing' : m.status === 'done' ? 'Ready' : 'Queued'),
+      actions,
     );
-    renderSteps();
-
-    const total = m.costs.reduce((a, c) => a + c.usd, 0);
-    clear(costEl);
-    costEl.append(
-      h('div.cost-total', h('span', 'Spent so far'), h('strong', fmtUsd(total))),
-      h('ul.cost-items', m.costs.map((c) => h('li', h('span', c.label), h('span', fmtUsd(c.usd))))),
-    );
-
     clear(actions);
     if (m.scene) actions.append(h('button.primary', { onclick: onReady }, 'Enter the world'));
-    if (!running && (m.status === 'failed' || m.status === 'partial')) {
+    if (canEdit && !running && (m.status === 'failed' || m.status === 'partial')) {
       actions.append(h('button', {
         onclick: async () => {
           try {
@@ -74,6 +114,15 @@ export function renderBuild(root: HTMLElement, id: string, onReady: () => void):
         },
       }, 'Retry failed parts'));
     }
+
+    if (!canEdit) return;
+    renderSteps();
+    const total = m.costs.reduce((a, c) => a + c.usd, 0);
+    clear(costEl);
+    costEl.append(
+      h('div.cost-total', h('span', 'Spent so far'), h('strong', fmtUsd(total))),
+      h('ul.cost-items', m.costs.map((c) => h('li', h('span', c.label), h('span', fmtUsd(c.usd))))),
+    );
 
     clear(gallery);
     const imgBox = h('figure.photo-boxes', h('img', { src: file(m.image.file), alt: 'Your photo' }));
@@ -98,7 +147,7 @@ export function renderBuild(root: HTMLElement, id: string, onReady: () => void):
             o.mesh?.previewFile ? h('img', { src: file(o.mesh.previewFile), alt: `${o.name} preview`, title: o.mesh.job?.model ?? '' }) : h('div.ph', o.status === 'running' ? 'sculpting…' : o.mesh?.file ? `${modelLabel(o.mesh.job?.model ?? '')} (no preview)` : ''),
           ),
           h('div.obj-name', o.name, o.cutout?.completed ? h('span.tag', 'completed') : null, (o.maskVersion ?? 1) > 1 ? h('span.tag', `mask v${o.maskVersion}`) : null),
-          o.error ? h('div.obj-err', o.error) : o.placement ? h('div.obj-msg', `fit ${(o.placement.fit.iou * 100).toFixed(0)}% · ${o.placement.fit.heightM.toFixed(2)} m tall · ${o.placement.fit.depthM.toFixed(1)} m away`) : null,
+          o.error ? h('div.obj-err', o.error) : o.placement?.fit ? h('div.obj-msg', `fit ${(o.placement.fit.iou * 100).toFixed(0)}% · ${o.placement.fit.heightM.toFixed(2)} m tall · ${o.placement.fit.depthM.toFixed(1)} m away`) : null,
           Object.keys(o.assets ?? {}).length ? h('div.obj-msg', `Models: ${Object.keys(o.assets ?? {}).map(modelLabel).join(', ')}`) : null,
           assetCheckLine(o, id),
           o.mask ? h('button.small', { type: 'button', disabled: running, title: 'Redo this object\'s mask with SAM 3.1; only this object is rebuilt', onclick: () => openMaskEditor(m, o) }, 'Fix mask') : null,
@@ -182,8 +231,9 @@ export function renderBuild(root: HTMLElement, id: string, onReady: () => void):
       h('p.muted', 'Each model is generated once per object and mask, and kept. Compare them on the ', h('a', { href: '#/bench' }, 'benchmark page'), ' after running npm run bench:placement.'));
   }
 
-  const unsubscribe = subscribe(id, {
+  const unsubscribe = canEdit ? subscribe(id, {
     manifest: (m, isRunning) => {
+      if (disposed) return;
       manifest = m;
       running = isRunning;
       const depthState = `${m.steps.depth.status}:${Object.keys(m.depthAssets ?? {}).join(',')}`;
@@ -192,6 +242,7 @@ export function renderBuild(root: HTMLElement, id: string, onReady: () => void):
         void refreshCamera();
       }
       render();
+      void metrics.refresh();
       if (m.scene && m.scene.version !== lastSceneVersion && lastSceneVersion !== 0 && (m.status === 'done' || m.status === 'partial')) {
         toast('Your world is ready.');
       }
@@ -202,23 +253,28 @@ export function renderBuild(root: HTMLElement, id: string, onReady: () => void):
       if (lines.length > 400) lines.shift();
       logEl.textContent = lines.join('\n');
     },
-  });
+  }) : () => {};
 
   void api.get(id).then((r) => {
+    if (disposed) return;
     lines.unshift(...r.log);
     logEl.textContent = lines.join('\n');
     if (!manifest) {
       manifest = r.manifest;
       running = r.running;
       render();
+      if (canEdit) void refreshCamera();
     }
     lastSceneVersion = r.manifest.scene?.version ?? 0;
   }).catch((err) => {
+    if (disposed) return;
     toast((err as Error).message, 'error');
   });
 
   return () => {
+    disposed = true;
     clearInterval(tick);
     unsubscribe();
+    metrics.dispose();
   };
 }

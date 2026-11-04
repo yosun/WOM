@@ -1,0 +1,157 @@
+{
+  "protocol": "wom-par-v1",
+  "id": "wompar-0.1-pilot",
+  "label": "WOMPar 0.1 · four-photo local pilot",
+  "release": "pilot",
+  "sampling": "convenience",
+  "reference": {
+    "id": "wompar-0.1",
+    "label": "WOMPar 0.1 · frozen saved-output pilot",
+    "revision": "0.1 saved worlds, active fitter, snapshot 2026-11-04; see per-world artifact provenance for configuration deviations"
+  },
+  "conditions": {
+    "path": "protocol/conditions.json",
+    "sha256": "405db663d3b64f81760ed54e3286a8fc0a6be19a8dc08148be19855a964791de"
+  },
+  "rubric": {
+    "path": "protocol/rubric.md",
+    "sha256": "28a60b34ffd5e9ea8b0679f328da99fb39103bee9c9138b18e3a71ed030603cb"
+  },
+  "evaluation": {
+    "id": "human-v1",
+    "kind": "human",
+    "judgesPerTrial": 5
+  },
+  "strata": [
+    {
+      "id": "local-pilot",
+      "weight": 1
+    }
+  ],
+  "scenes": [
+    {
+      "id": "sunny-garden",
+      "title": "Sunny Garden with Buddy",
+      "source": {
+        "path": "reference/sunny-garden/world/source.jpg",
+        "sha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05"
+      },
+      "stratum": "local-pilot",
+      "trajectory": {
+        "path": "reference/sunny-garden/trajectory.json",
+        "sha256": "92420dac3d95982c5ad4b3690349ec80765e1171b155fb8b9f73e8a245958b06"
+      },
+      "trials": [
+        {
+          "id": "saved-0",
+          "reference": {
+            "status": "ok",
+            "artifact": {
+              "path": "reference/sunny-garden/artifact.json",
+              "sha256": "afd17300cab4562215f6250d77c0f2640a052cd904ffdae8a471b1d8436cec1b",
+              "kind": "bundle"
+            },
+            "evidence": {
+              "path": "reference/sunny-garden/evidence.json",
+              "sha256": "9f85ffd1a53b55b2ece6ca1a177f7c685d7faef74ad640407691b0861caf5581",
+              "kind": "bundle"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cloister",
+      "title": "Sunlit Cloister Garden",
+      "source": {
+        "path": "reference/cloister/world/source.jpg",
+        "sha256": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9"
+      },
+      "stratum": "local-pilot",
+      "trajectory": {
+        "path": "reference/cloister/trajectory.json",
+        "sha256": "8298d149459c07abe7741f9406dafbe9839dad256a39b8f86651a87d159d8f3e"
+      },
+      "trials": [
+        {
+          "id": "saved-0",
+          "reference": {
+            "status": "ok",
+            "artifact": {
+              "path": "reference/cloister/artifact.json",
+              "sha256": "a479d980b870c1abd296240a61b64c826ea7b12c326d538f7e12474975cfab83",
+              "kind": "bundle"
+            },
+            "evidence": {
+              "path": "reference/cloister/evidence.json",
+              "sha256": "7b2a08a98836d6d8f92d1cc83248278f02010cc05d1dde1303060f17c7d0d7aa",
+              "kind": "bundle"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "beauty-split",
+      "title": "Beauty Counter Smile (head + body)",
+      "source": {
+        "path": "reference/beauty-split/world/source.jpg",
+        "sha256": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43"
+      },
+      "stratum": "local-pilot",
+      "trajectory": {
+        "path": "reference/beauty-split/trajectory.json",
+        "sha256": "b72b7330205ba7e9669cef08fce773d8c9a4574bddc2d665c07c863adb23dace"
+      },
+      "trials": [
+        {
+          "id": "saved-0",
+          "reference": {
+            "status": "ok",
+            "artifact": {
+              "path": "reference/beauty-split/artifact.json",
+              "sha256": "c6a3a8d691ff1d709d6517e46638f9640af49833824e454651c712e1a0dac8fc",
+              "kind": "bundle"
+            },
+            "evidence": {
+              "path": "reference/beauty-split/evidence.json",
+              "sha256": "d283d2431fe35c35a1726a0c7ae36e6d6029e1eeadf32c93b60dc1ec3d10ffb4",
+              "kind": "bundle"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "poolside",
+      "title": "Poolside Grin with Corgi",
+      "source": {
+        "path": "reference/poolside/world/source.jpg",
+        "sha256": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81"
+      },
+      "stratum": "local-pilot",
+      "trajectory": {
+        "path": "reference/poolside/trajectory.json",
+        "sha256": "fd39f99f21431d4efd408a09ea367d175e522d7dd69de6574c71a17c7eaa451f"
+      },
+      "trials": [
+        {
+          "id": "saved-0",
+          "reference": {
+            "status": "ok",
+            "artifact": {
+              "path": "reference/poolside/artifact.json",
+              "sha256": "223b160dbe694bee5c3319c3f044b3e70045a0010d6ee099af96ec2629c36a1e",
+              "kind": "bundle"
+            },
+            "evidence": {
+              "path": "reference/poolside/evidence.json",
+              "sha256": "0fb25bd19e973287db33bb2ef59060ecfdeeea4aa2209e263bdb2b466662a2b3",
+              "kind": "bundle"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

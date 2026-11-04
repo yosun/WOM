@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wom.quest/api/wometrics/setup-schema",
+  "title": "WOMetrics agent setup v1",
+  "description": "Public method provenance shared by every contributed setup. Generation and evaluation evidence use the WOM Par submission contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "label", "revision", "runner", "adapter", "models", "agents", "environment"],
+  "properties": {
+    "schema": { "const": "wom-agent-setup/1" },
+    "id": { "$ref": "#/$defs/id" },
+    "label": { "$ref": "#/$defs/text" },
+    "revision": { "$ref": "#/$defs/text" },
+    "description": { "$ref": "#/$defs/text" },
+    "runner": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["kind", "argv"], "properties": {
+          "kind": { "const": "command" }, "argv": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" } }
+        } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "path"], "properties": {
+          "kind": { "const": "http" }, "path": { "type": "string", "pattern": "^/(?!/)[^?#]*$" }
+        } }
+      ]
+    },
+    "adapter": { "type": "object", "additionalProperties": false, "required": ["id", "revision"], "properties": {
+      "id": { "$ref": "#/$defs/id" }, "revision": { "$ref": "#/$defs/text" }
+    } },
+    "models": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "provider", "role"], "properties": {
+      "id": { "$ref": "#/$defs/id" }, "provider": { "$ref": "#/$defs/text" }, "role": { "$ref": "#/$defs/text" }
+    } } },
+    "agents": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "role", "tools"], "properties": {
+      "id": { "$ref": "#/$defs/id" }, "role": { "$ref": "#/$defs/text" }, "model": { "$ref": "#/$defs/id" },
+      "tools": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/text" } }
+    } } },
+    "environment": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" } },
+    "configuration": { "type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {
+      "path": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*[\\\\:\\u0000])[^/]+(?:/[^/]+)*$" },
+      "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$" },
+    "text": { "type": "string", "pattern": "\\S" }
+  }
+}

@@ -2,6 +2,8 @@ import { api, type CreditPack, type WorldOptions, type WorldSummary } from './ap
 import { currentUser, userMenu, requireSignIn, signedIn } from './auth.ts';
 import { worldHref } from './routes.ts';
 import { clear, fmtUsd, h, toast } from './dom.ts';
+import { MODEL_LABELS, PLANNER_MODELS } from '../../server/src/types.ts';
+import { createMemoryPreview, memoryMark } from './home-memory.ts';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif,.heic,.heif,.avif,video/quicktime,video/mp4,.mov,.mp4';
 
@@ -14,7 +16,7 @@ const STATUS_LABEL: Record<WorldSummary['status'], string> = {
 };
 
 /** The signed-in person's name in their share links, and their credits with a place for a promo code. Nothing for a visitor. */
-function accountPanel(): HTMLElement | '' {
+function accountPanel(balance: HTMLElement): HTMLElement | '' {
   const me = currentUser();
   if (!me) return '';
 
@@ -112,30 +114,46 @@ function accountPanel(): HTMLElement | '' {
     h('div.row', h('strong', 'Credits'), credits),
     redeemRow,
     buy,
+    me.role === 'admin' ? h('div.row', h('strong', 'AI3D'), balance) : '',
   );
 }
 
 export function renderHome(root: HTMLElement) {
   clear(root);
+  const paidForCredits = new URLSearchParams(location.search).get('credits') === 'paid';
+  const events = new AbortController();
+  const memory = createMemoryPreview();
+  let disposed = false;
+  let previewUrl: string | undefined;
   let file: File | null = null;
   let options: WorldOptions = { maxObjects: 5, plannerModel: 'muse-spark-1.3', meshModel: 'idol', worldModel: 'worldlabs', depthModel: 'moge3', completeOccluded: true, splitPeople: true, placementAgents: ['muse-spark-1.3', 'muse-wonder-1.0'] };
 
   const preview = h('img.drop-preview', { alt: '' });
-  const dropHint = h('div.drop-hint', h('strong', 'Drop a photo here'), h('span', 'or click to choose a JPEG, PNG, WebP or HEIC photo, or a short video (a Live Photo .MOV)'));
+  const dropHint = h('div.drop-hint', h('span', 'or drop a moment here'));
   const input = h('input', { type: 'file', accept: ACCEPT, hidden: true }) as HTMLInputElement;
-  const drop = h('label.drop', { tabIndex: 0 }, input, preview, dropHint);
-  const startBtn = h('button.primary', { type: 'button', disabled: true }, 'Step into this memory');
+  const choose = h('button.primary.choose-photo', { type: 'button', onclick: () => input.click() }, 'Choose a photo', h('span', { 'aria-hidden': 'true' }, '↑'));
+  const drop = h('div.drop', { role: 'group', 'aria-label': 'Upload a photograph' }, input, preview, choose, dropHint);
+  const selectedFile = h('p.upload-filename', { hidden: true });
+  const startBtn = h('button.primary', { type: 'button', disabled: true }, 'Create this memory');
   const keysNote = h('p.note');
   const balance = h('span.balance');
+  const actions = h('div.actions', { hidden: true }, startBtn);
   // What the file holds: the lens, and a frame picker when there is more than one frame.
   const uploadInfo = h('div.upload-info');
   let frame: number | undefined;
   let inspectSeq = 0;
 
   const setFile = (f: File | null) => {
+    const seq = ++inspectSeq;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = undefined;
     file = f;
     frame = undefined;
-    startBtn.disabled = !f;
+    startBtn.disabled = true;
+    actions.hidden = !f;
+    selectedFile.hidden = !f;
+    selectedFile.textContent = f?.name ?? '';
+    choose.firstChild!.textContent = f ? 'Change photo' : 'Choose a photo';
     clear(uploadInfo);
     if (!f) {
       preview.removeAttribute('src');
@@ -143,19 +161,20 @@ export function renderHome(root: HTMLElement) {
       return;
     }
     // Browsers other than Safari cannot show HEIC, and videos need a frame: use the server's thumbnail then.
-    if (/^image\/(jpeg|png|webp|avif)$/.test(f.type)) preview.src = URL.createObjectURL(f);
+    if (/^image\/(jpeg|png|webp|avif)$/.test(f.type)) preview.src = previewUrl = URL.createObjectURL(f);
     else preview.removeAttribute('src');
     drop.classList.add('has-file');
     if (!signedIn()) {
       clear(uploadInfo);
       uploadInfo.append(h('p.note', 'Sign in to inspect and build a memory.'));
+      startBtn.disabled = false;
       return;
     }
-    const seq = ++inspectSeq;
     uploadInfo.append(h('p.note', 'Reading the file…'));
     void api.inspect(f).then((info) => {
-      if (seq !== inspectSeq) return;
+      if (disposed || seq !== inspectSeq) return;
       clear(uploadInfo);
+      startBtn.disabled = false;
       frame = info.primary;
       if (!preview.getAttribute('src')) preview.src = info.frames[info.primary]?.thumb ?? '';
       const extras = info.aux.filter((a) => a.type !== 'hdr-gain-map').map((a) => a.type === 'disparity' || a.type === 'depth' ? `${a.type} map (${a.accuracy ?? 'relative'})` : a.type.replace('-', ' '));
@@ -178,7 +197,7 @@ export function renderHome(root: HTMLElement) {
         uploadInfo.append(h('p.note', `${info.frames.length} frames in this file. Pick the one to build from; all of them are kept with the world.`), strip);
       }
     }).catch((err) => {
-      if (seq !== inspectSeq) return;
+      if (disposed || seq !== inspectSeq) return;
       clear(uploadInfo);
       uploadInfo.append(h('p.note.warn', (err as Error).message));
       file = null;
@@ -196,7 +215,6 @@ export function renderHome(root: HTMLElement) {
     if (f && (/^(image|video)\//.test(f.type) || /\.(heic|heif|avif|mov|mp4)$/i.test(f.name))) setFile(f);
     else toast('That is not a photo or video file.', 'error');
   });
-  drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
 
   const select = <K extends keyof WorldOptions>(key: K, label: string, choices: [WorldOptions[K], string][], hint: string) => {
     const el = h('select', {
@@ -214,17 +232,17 @@ export function renderHome(root: HTMLElement) {
   const splitBox = h('input', { type: 'checkbox', checked: options.splitPeople, onchange: (e: Event) => { options = { ...options, splitPeople: (e.target as HTMLInputElement).checked }; } });
 
   const settings = h('details.settings',
-    h('summary', 'Settings'),
+    h('summary', 'Advanced settings'),
     h('div.fields',
-      select('maxObjects', 'Objects to sculpt', [[0, 'None (world only)'], [1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [8, '8']], 'Muse Spark picks the most important ones'),
-      select('plannerModel', 'Scene director', [['muse-spark-1.3', 'Muse Spark 1.3'], ['muse-wonder-1.0', 'Muse Wonder 1.0']], 'Reads the photo and plans the scene'),
+      select('maxObjects', 'Objects to sculpt', [[0, 'None (world only)'], [1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [8, '8']], 'The scene director picks the most important ones'),
+      select('plannerModel', 'Scene director', PLANNER_MODELS.map((m) => [m, MODEL_LABELS[m]]), 'Reads the photo and plans the scene; Sol is experimental'),
       select('meshModel', 'Objects', [['idol', 'IDOL (Gaussian splats)'], ['triposplat', 'TripoSplat (Gaussian splats)'], ['tripo-v31', 'Tripo H3.1 mesh'], ['tripo-p1', 'Tripo P1 low-poly mesh']], 'IDOL $0.10, TripoSplat $0.05 per object; Tripo meshes $0.30–0.50'),
       select('worldModel', 'Surrounding world', [['worldlabs', 'Marble 1.1'], ['worldlabs-draft', 'Marble draft (cheaper)'], ['none', 'None (depth relief only)']], 'Grown from the photo with objects erased'),
       select('depthModel', 'Depth', [['moge3', 'MoGe-3'], ['moge2', 'MoGe-2']], '$0.10 per image (the photo and its clean plate)'),
       h('label.field.check', completeBox, h('span', 'Complete hidden parts of objects with Muse Image')),
       h('label.field.check', splitBox, h('span', 'Build a big face as its own head and body (Gaussian-splat objects only; about +$0.12 per person, a minute or two longer to compose)')),
       h('div.field.check', h('span', 'Placement agents'),
-        ...(['muse-spark-1.3', 'muse-wonder-1.0'] as const).map((m) => h('label.field.check',
+        ...PLANNER_MODELS.map((m) => h('label.field.check',
           h('input', {
             type: 'checkbox',
             checked: options.placementAgents.includes(m),
@@ -233,10 +251,11 @@ export function renderHome(root: HTMLElement) {
               options = { ...options, placementAgents: on ? [...new Set([...options.placementAgents, m])] : options.placementAgents.filter((x) => x !== m) };
             },
           }),
-          h('span', `${m === 'muse-spark-1.3' ? 'Muse Spark' : 'Muse Wonder'} also places each object (about $${m === 'muse-spark-1.3' ? '0.07' : '0.10'} per object); pick the placement you like in the viewer`),
+          h('span', `${MODEL_LABELS[m]} also places each object (${m === 'gpt-6.1-sol' ? 'experimental, usage-priced' : `about $${m === 'muse-spark-1.3' ? '0.07' : '0.10'} per object`}); pick the placement you like in the viewer`),
         )),
       ),
     ),
+    keysNote,
   );
 
   startBtn.addEventListener('click', async () => {
@@ -250,28 +269,63 @@ export function renderHome(root: HTMLElement) {
     } catch (err) {
       toast((err as Error).message, 'error');
       startBtn.disabled = false;
-      startBtn.textContent = 'Step into this memory';
+      startBtn.textContent = 'Create this memory';
     }
   });
 
   const gallery = h('div.gallery');
-  const galleryWrap = h('section.gallery-wrap', h('div.gallery-head', h('h2', 'Your worlds'), h('a.button.slides-link', { href: '#/space', title: 'Every way into your worlds, as a stack of slides along a timeline' }, 'Browse as slides')), h('p.note', h('a', { href: '#/bench' }, 'WOM: World Observation Metrics'), ' measures how well each world matches its photo (placement, asset checks, camera, spend). ', h('a', { href: '#/observations' }, 'Observations'), ' lists problems flagged while walking a world.'), gallery);
+  const galleryTitle = h('h2', { tabIndex: -1 }, 'Your worlds');
+  const galleryNote = h('p.gallery-note', 'Loading your worlds…');
+  const slidesLink = h('a.button.slides-link', { href: '#/space', hidden: true }, 'Browse as slides', h('span', { 'aria-hidden': 'true' }, '↗'));
+  const galleryWrap = h('section.gallery-wrap', { id: 'your-worlds', hidden: !signedIn(), 'aria-label': 'Your worlds' },
+    h('div.gallery-head', h('div', galleryTitle, galleryNote), slidesLink), gallery,
+  );
+  const account = currentUser() ? h('details.home-account', { open: paidForCredits }, h('summary', 'Account', h('span.home-account-label', ' & credits')), accountPanel(balance)) : null;
+  const closeAccount = () => { if (account) account.open = false; };
+  document.addEventListener('pointerdown', (e) => { if (e.target instanceof Node && !account?.contains(e.target)) closeAccount(); }, { signal: events.signal });
+  account?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeAccount(); account.querySelector('summary')?.focus(); }
+  });
+  const showWorlds = () => {
+    galleryWrap.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+    galleryTitle.focus({ preventScroll: true });
+  };
 
   root.append(
     h('main.home',
-      userMenu(),
-      h('header.hero',
-        h('div.brand', h('span.mark', 'WOM'), h('span', 'World of a Memory')),
-        h('h1', 'Step inside a photograph.'),
-        h('p.lede', 'Give WOM one image. Muse Spark reads the scene, SAM 3.1 outlines every object, IDOL or Tripo sculpts each one, MoGe measures the depth, and World Labs Marble grows the world around them.'),
+      h('header.home-nav',
+        h('a.home-brand', { href: '/', 'aria-label': 'World of a Memory home' }, memoryMark('home-brand-keyhole'), h('span', h('strong', 'WOM'), h('span', 'World of a Memory'))),
+        h('nav.home-nav-actions', { 'aria-label': 'Your account and worlds' },
+          signedIn() ? h('button.home-nav-link', { type: 'button', onclick: showWorlds }, 'Your worlds') : '', account, userMenu(),
+        ),
       ),
-      h('section.upload', drop, uploadInfo, settings, h('div.actions', startBtn, balance), keysNote),
-      accountPanel(),
+      h('section.home-intro', { 'aria-labelledby': 'home-title' },
+        h('div.hero',
+          h('p.home-eyebrow', 'A little closer to being there.'),
+          h('h1', { id: 'home-title' }, 'Step inside a ', h('em', 'photograph.')),
+          h('p.lede', 'Turn a photo into a 3D world you can walk through. Revisit a place. See what lies beyond the frame.'),
+          h('section.upload', { 'aria-label': 'Create a memory' },
+            drop,
+            h('p.upload-formats', 'Photos, iPhone HEIC & short videos'),
+            selectedFile, uploadInfo, actions,
+            settings,
+          ),
+          memory.action,
+        ),
+        memory.el,
+      ),
       galleryWrap,
+      h('footer.home-footer',
+        h('p', 'A photograph holds a moment. Give it a world.'),
+        h('details.home-colophon', h('summary', 'Behind the memory'),
+          h('p', 'Built with Muse Spark, SAM, IDOL, Tripo, MoGe and World Labs Marble.'),
+          currentUser()?.role === 'admin' ? h('nav', { 'aria-label': 'World evaluation' }, h('a', { href: '#/bench' }, 'World Observation Metrics'), h('a', { href: '#/observations' }, 'Observations')) : '',
+        ),
+      ),
     ),
   );
 
-  void api.health().then((hres) => {
+  if (currentUser()?.role === 'admin') void api.health().then((hres) => {
     if (hres.keys && (!hres.keys.meta || !hres.keys.ai3d)) {
       keysNote.textContent = `Missing API keys in .env: ${[!hres.keys.meta && 'MUSE_API_KEY', !hres.keys.ai3d && 'AI3D_API_KEY'].filter(Boolean).join(', ')}`;
       keysNote.classList.add('warn');
@@ -280,28 +334,52 @@ export function renderHome(root: HTMLElement) {
     keysNote.textContent = 'The WOM server is not reachable. Start it with npm run dev.';
     keysNote.classList.add('warn');
   });
-  void api.account().then((a) => {
-    if (a.ai3dBalanceUsd !== null) balance.textContent = `AI3D balance ${fmtUsd(a.ai3dBalanceUsd)}`;
+  if (currentUser()?.role === 'admin') void api.account().then((a) => {
+    if (a.ai3dBalanceUsd !== null) balance.textContent = fmtUsd(a.ai3dBalanceUsd);
   }).catch(() => undefined);
 
   const loadGallery = async () => {
+    if (!signedIn()) return;
+    gallery.setAttribute('aria-busy', 'true');
     let worlds: WorldSummary[] = [];
     try {
       worlds = await api.list();
     } catch {
+      if (disposed) return;
+      gallery.setAttribute('aria-busy', 'false');
+      galleryNote.textContent = 'Please try again in a moment.';
+      gallery.append(h('div.gallery-empty', h('p', 'Your worlds could not be loaded.'), h('button', { type: 'button', onclick: () => { clear(gallery); void loadGallery(); } }, 'Try again')));
       return;
     }
+    if (disposed) return;
     clear(gallery);
-    galleryWrap.hidden = worlds.length === 0;
+    gallery.setAttribute('aria-busy', 'false');
+    galleryNote.textContent = 'Places to come back to.';
+    slidesLink.hidden = worlds.length === 0;
+    if (!worlds.length) {
+      galleryNote.textContent = 'Every world starts with a moment.';
+      gallery.append(h('div.gallery-empty', h('p', 'Your first memory is waiting.'), h('button', { type: 'button', onclick: () => input.click() }, 'Choose a photo')));
+    }
     for (const w of worlds) {
-      gallery.append(
+      const card = h('div.world-card');
+      card.append(
         h('a.card', { href: worldHref(w.id, { handle: w.handle }) },
           h('div.thumb', h('img', { src: w.thumb, alt: '', loading: 'lazy' }), h('span.badge', { class: w.status }, w.running ? 'Building' : STATUS_LABEL[w.status])),
           // What a world cost to build is for administrators; everyone else pays in credits.
           h('div.meta', h('strong', w.title), h('span', `${w.objects} object${w.objects === 1 ? '' : 's'}${w.hasWorld ? ' · Marble world' : ''}${w.visibility === 'private' ? ' · Private' : ''}${currentUser()?.role === 'admin' ? ` · ${fmtUsd(w.costUsd)}` : ''}`)),
         ),
+        h('a.world-metrics-link', { href: worldHref(w.id, { handle: w.handle, build: true }), title: 'Facts and evaluation for this generation' }, 'WOMetrics', h('span', { 'aria-hidden': 'true' }, '↗')),
       );
+      gallery.append(card);
     }
   };
   void loadGallery();
+
+  return () => {
+    disposed = true;
+    inspectSeq++;
+    events.abort();
+    memory.dispose();
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  };
 }

@@ -42,6 +42,11 @@ try {
   await page.goto(`${BASE}/?debug#/space?slide=${encodeURIComponent(key)}`);
   await page.waitForFunction(() => window.__wom?.space?.state().mode === 'browse', null, { timeout: 30000 });
   await sleep(2500);
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => {
+    const s = window.__wom.space.state();
+    return s.mode === 'browse' && s.extracted === s.key && s.extractionTarget === 1 && s.extraction === 1;
+  }, null, { timeout: 20000 });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Network.enable');
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 200, downloadThroughput: 200 * 1024, uploadThroughput: -1 });

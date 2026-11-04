@@ -21,6 +21,7 @@ import { bench } from '../server/src/bench/suite.ts';
 import type { Effort } from '../server/src/bench/llm.ts';
 import { geometrySubject, museSubject, placementTask } from '../server/src/bench/placement.ts';
 import type { Protocol } from '../server/src/bench/spec.ts';
+import { PLACEMENT_AGENT_REVISION } from '../server/src/placement.ts';
 
 const args = process.argv.slice(2);
 const opt = (name: string) => {
@@ -55,5 +56,5 @@ await bench.run(placementTask, [geometrySubject, ...models.map((m) => museSubjec
   maxUsd: flag('cached-only') ? 0 : Number(opt('max-usd') ?? 4),
   fresh: flag('fresh'),
   concurrency: Number(opt('concurrency') ?? 2),
-  config: { models, protocols, effort },
+  config: { models, protocols, effort, ...(protocols.includes('agent') ? { agentRevision: PLACEMENT_AGENT_REVISION } : {}) },
 });

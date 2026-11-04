@@ -8,6 +8,7 @@
 import { toDataUrl, type ChatContent, type ChatMessage, type ToolDef } from '../clients/meta.ts';
 import type { Vec3 } from '../geometry/math.ts';
 import type { Placement } from '../geometry/pose.ts';
+import { PLACEMENT_AGENT_REVISION } from '../placement.ts';
 import { errorMessage } from '../util.ts';
 import { BudgetExceeded, cachedChat, type Spend } from './cache.ts';
 import type { PlacementMetrics } from './metrics.ts';
@@ -210,7 +211,7 @@ const TOOLS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'auto_fit',
-      description: 'Run the geometric fitter: it keeps the asset upright, searches position, scale and yaw to match the mask silhouette, then rests the base pivot on the ground plane. Optionally restrict yaw to yaw_center_deg ± yaw_window_deg. Returns its placement in the same parameters render_placement takes, the same scores, and an overlay image in the next message.',
+      description: 'Run the updated geometric fitter: compare the original search with 32-round refinement that preserves fitted position and scale while trying angle changes. Both stay upright and rest on the ground; return the placement with higher scored silhouette IoU, keeping the original on ties. Optionally restrict yaw to yaw_center_deg ± yaw_window_deg. Returns placement parameters, scores, and an overlay image in the next message.',
       parameters: {
         type: 'object',
         properties: {
@@ -282,12 +283,14 @@ export async function agentPlacement(
       role: 'system',
       content: `${conventions(task)}
 
-You have tools. render_placement scores a placement you propose and shows it to you. auto_fit runs the geometric fitter. measure_depth reads metric depth. Use whichever you find useful, in any order, then call submit_placement once. You may make at most ${MAX_TOOL_CALLS} tool calls before submitting.`,
+Placement technique: ${PLACEMENT_AGENT_REVISION}.
+You have tools. Start with auto_fit to establish a checked placement using the updated fitter. It compares the original and polished upright fits and keeps the one with higher silhouette IoU. Inspect its overlay; render_placement scores any adjustment you propose, and measure_depth reads metric depth. Then call submit_placement once. When keeping an auto_fit result, copy its returned placement parameters exactly. You may make at most ${MAX_TOOL_CALLS} tool calls before submitting.`,
     },
     { role: 'user', content: [{ type: 'text', text: `${objectText(task)}\nPlace the asset, then call submit_placement.` }, ...images(task)] },
   ];
   const info: LlmRunInfo = { costUsd: 0, latencyMs: 0, calls: 0, cachedCalls: 0, inputTokens: 0, outputTokens: 0 };
   const steps: ToolStep[] = [];
+  const fitted: { args: PlacementArgs; placement: Placement }[] = [];
   let lastScored: Placement | null = null;
   let submitted: AgentOutcome['submitted'] = null;
   let nudged = false;
@@ -307,11 +310,11 @@ You have tools. render_placement scores a placement you propose and shows it to 
       if (!calls.length) {
         if (nudged) break;
         nudged = true;
-        messages.push({ role: 'assistant', content: r.message.content ?? '' });
+        messages.push({ role: 'assistant', content: r.message.content ?? '', ...(r.message.responseItems ? { responseItems: r.message.responseItems } : {}) });
         messages.push({ role: 'user', content: 'Call submit_placement with your final placement now.' });
         continue;
       }
-      messages.push({ role: 'assistant', content: r.message.content ?? '', tool_calls: calls });
+      messages.push({ role: 'assistant', content: r.message.content ?? '', tool_calls: calls, ...(r.message.responseItems ? { responseItems: r.message.responseItems } : {}) });
       const followUps: ChatContent[] = [];
       for (const tc of calls) {
         let args: Record<string, unknown> = {};
@@ -342,7 +345,9 @@ You have tools. render_placement scores a placement you propose and shows it to 
           const w = typeof args.yaw_window_deg === 'number' ? Math.min(180, Math.max(10, args.yaw_window_deg)) : undefined;
           const s = await task.autoFit(c, c === undefined ? undefined : w ?? 30);
           lastScored = s.placement;
-          result = { placement: { base_x: r1(s.grid.x), base_y: r1(s.grid.y), height_m: r3(s.placement.heightM), yaw_deg: r1(s.placement.yawDeg), pitch_deg: 0, roll_deg: 0 }, ...summarize(s) };
+          const fitArgs = { base_x: r1(s.grid.x), base_y: r1(s.grid.y), height_m: r3(s.placement.heightM), yaw_deg: r1(s.placement.yawDeg), pitch_deg: 0, roll_deg: 0 };
+          fitted.push({ args: fitArgs, placement: s.placement });
+          result = { placement: fitArgs, ...summarize(s) };
           followUps.push({ type: 'text', text: `Overlay for auto_fit (yaw ${r1(s.placement.yawDeg)}°, height ${s.placement.heightM.toFixed(2)} m):` }, { type: 'image_url', image_url: { url: toDataUrl(s.overlay, 'image/jpeg') } });
         } else if (tc.function.name === 'measure_depth') {
           const pts = Array.isArray(args.points) ? (args.points as { x: number; y: number }[]).slice(0, 8) : [];
@@ -359,7 +364,13 @@ You have tools. render_placement scores a placement you propose and shows it to 
     info.error = err instanceof BudgetExceeded ? `stopped: ${err.message}` : errorMessage(err);
   }
   let placement: Placement | null = null;
-  if (submitted) placement = task.place(submitted);
+  if (submitted) {
+    // Reuse the exact scored pose when the agent copies a fit, rather than round-tripping 1 mm / 0.1°.
+    const keys = ['base_x', 'base_y', 'height_m', 'yaw_deg', 'pitch_deg', 'roll_deg'] as const;
+    const fit = submitted.source === 'fitter' || submitted.source === 'fitter_refined'
+      ? fitted.findLast((f) => keys.every((k) => submitted![k] === f.args[k])) : undefined;
+    placement = fit?.placement ?? task.place(submitted);
+  }
   if (!placement && lastScored && (opts.partialOk ?? true)) {
     placement = lastScored;
     info.error ??= 'did not submit; using its last scored placement';

@@ -7,6 +7,7 @@ import { dropHandoff, giveHandoff, removeCover, takeHandoff } from './handoff.ts
 import { createSlideSpace, type SlideSpace } from './space.ts';
 import { worldHref } from '../routes.ts';
 import { resolveSpace, slideKey, spaceHref, spaceTrail } from './spaces.ts';
+import { createVideoStudio, type VideoStudio } from '../videos.ts';
 
 /** `navigate` goes to another page of the app without a page load (main.ts). */
 export function renderSpace(root: HTMLElement, spaceId: string, params: URLSearchParams, navigate: (href: string) => void): () => void {
@@ -15,6 +16,9 @@ export function renderSpace(root: HTMLElement, spaceId: string, params: URLSearc
   let disposed = false;
   let space: SlideSpace | null = null;
   let all: SlideDoc[] = [];
+  let studio: VideoStudio | null = null;
+  let studioWorld = '';
+  let animateRequest = 0;
   // Back from a world played from this space: its slide is still on screen, in the cover. A cover meant for
   // somewhere else goes.
   const back = takeHandoff((x) => x.direction === 'return' && x.from === spaceId);
@@ -41,6 +45,22 @@ export function renderSpace(root: HTMLElement, spaceId: string, params: URLSearc
       },
       // Keep the address on the slide in front, so reloading or coming back lands on it.
       onSelect: (s) => history.replaceState(history.state, '', spaceHref(spaceId, slideKey(s.world, s.id))),
+      onAnimate: (s) => {
+        const request = ++animateRequest;
+        if (studioWorld !== s.world) {
+          studio?.dispose();
+          studioWorld = s.world;
+          // Access is resolved before opening; another person's shared image can still play completed videos.
+          studio = createVideoStudio(host, s.world, { editable: false });
+        }
+        const active = studio;
+        void api.get(s.world).then((world) => {
+          if (!disposed && request === animateRequest && studio === active && active) {
+            active.setEditable(world.access.canEdit);
+            active.open(s);
+          }
+        }).catch((err) => { if (!disposed && request === animateRequest) toast((err as Error).message, 'error'); });
+      },
       subspaceHref: (kind, value) => {
         const id = `${kind}/${value}`;
         return id === spaceId ? null : spaceHref(id);
@@ -81,6 +101,7 @@ export function renderSpace(root: HTMLElement, spaceId: string, params: URLSearc
   return () => {
     disposed = true;
     space?.dispose();
+    studio?.dispose();
     host.remove();
   };
 }

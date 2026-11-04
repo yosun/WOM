@@ -43,7 +43,7 @@ export async function usageHooks(): Promise<UsageHooks> {
         method: spec.id,
         case: caseLabel,
         run: (e.ref ?? '').split(':')[0],
-        label: `${spec.label} · Muse ${shortModel(model)}`,
+        label: `${spec.label} · ${shortModel(model)}`,
         about: protocol === 'agent' ? 'Renders, scores and fits, several calls per case' : 'One call per case',
       };
     },

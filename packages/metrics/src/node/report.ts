@@ -26,6 +26,7 @@ export function renderReport(view: RunView): string {
   if (view.skipped.length) L.push(`Skipped: ${view.skipped.join('; ')}`);
   L.push('');
   if (task.description) L.push(task.description, '');
+  if (view.extras.notice) L.push(view.extras.notice, '');
   L.push(`Metrics: ${task.metrics.map((m) => `${m.label}${m.description ? `: ${m.description}` : ''}`).join(' · ')}`, '');
   if (view.excluded.length) {
     L.push(`Left out of the table (see the case notes): ${view.excluded.map((id) => { const c = view.cases.find((x) => x.id === id); return `${id}${c?.note ? ` — ${c.note}` : ''}`; }).join('; ')}`, '');
@@ -69,7 +70,10 @@ export function renderReport(view: RunView): string {
   for (const c of view.cases) {
     L.push(`### ${[c.title, ...detail(c), c.group].filter(Boolean).join(' · ')}`, '');
     if (c.note) L.push(`> ${c.excluded ? 'Not in the summary. ' : ''}${c.note}`, '');
-    for (const [id, url] of Object.entries(c.artifacts)) L.push(`![${task.artifacts.find((a) => a.id === id)?.label ?? id}](${url.replace(/^\/bench-files\/[^/]+\/[^/]+\//, '')})`, '');
+    for (const [id, url] of Object.entries(c.artifacts)) {
+      const artifact = task.artifacts.find((a) => a.id === id);
+      L.push(`${artifact?.kind === 'file' ? '' : '!'}[${artifact?.label ?? id}](${url.replace(/^\/bench-files\/[^/]+\/[^/]+\//, '')})`, '');
+    }
     L.push(`| Method | ${metrics.map((m) => m.label).join(' | ')} | Notes |`, `| --- |${' --: |'.repeat(metrics.length)} --- |`);
     for (const r of c.results) {
       const notes = [r.error, r.label ? `verdict ${r.label}${c.expected && c.expected !== r.label ? ` (expected ${c.expected})` : ''}` : '', r.note].filter(Boolean).join('; ');

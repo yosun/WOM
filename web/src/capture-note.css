@@ -1,0 +1,273 @@
+/* A paper skin for the capture editor. Generation, drafts and playback stay in videos.ts. */
+@font-face {
+  font-family: 'Capture Hand';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/caveat-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Capture Hand';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/caveat-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:is(.capture-card, .video-dialog, .video-dock) {
+  --note-ink: #383e32;
+  --note-muted: #686044;
+  --note-line: #a1945a55;
+  --note-green: #355348;
+  --note-hand: 'Capture Hand', 'Segoe Print', 'Bradley Hand', cursive;
+}
+
+.capture-card:has(.video-editor), .video-dialog {
+  color-scheme: light;
+  color: var(--note-ink);
+  border: 1px solid #e4cd81;
+  border-top-color: #fff4c2;
+  border-radius: 3px 5px 18px 4px / 5px 3px 7px 4px;
+  background:
+    linear-gradient(180deg, #c5a75125, transparent 48px),
+    radial-gradient(ellipse at 0 0, #fff9d580, transparent 65%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%236b542a' opacity='.045' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E"),
+    linear-gradient(155deg, #f8edb5, #f2dfa0);
+  backdrop-filter: none;
+  box-shadow: 0 22px 50px #100c0755, 3px 5px 9px #100c0726, inset 0 1px #fff8d3;
+  scrollbar-width: thin;
+  scrollbar-color: #a1945a88 transparent;
+}
+.capture-card:has(.video-editor) {
+  width: min(370px, calc(100% - 28px));
+  padding: 19px 22px 17px;
+  bottom: 126px;
+  max-height: calc(100dvh - 180px);
+  overscroll-behavior: contain;
+}
+.capture-card:has(.video-editor)::after, .video-dialog::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  background: linear-gradient(135deg, #e2c77c00 47%, #bda56766 49%, #fff3bf 54%, #ebd48b);
+  border-radius: 0 0 15px 0;
+}
+.capture-card:has(.video-editor) .capture-kicker { display: grid; gap: 2px; margin: 0 0 15px; padding-right: 22px; }
+.capture-saved { display: flex; align-items: center; gap: 6px; font: 600 10px/1.5 var(--sans); letter-spacing: .13em; text-transform: uppercase; color: var(--note-muted); }
+.capture-saved::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #607352; box-shadow: 0 0 0 3px #60735213; }
+.capture-heading { color: var(--note-ink); font: 600 28px/1.1 var(--note-hand); }
+.capture-card:has(.video-editor) .capture-close, .video-dialog .video-dialog-close {
+  z-index: 3;
+  top: 9px;
+  right: 9px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  color: var(--note-muted);
+  border: 1px solid transparent;
+  border-radius: 7px 5px 8px 4px;
+  background: transparent;
+  font: 24px/1 var(--sans);
+}
+.capture-card:has(.video-editor) .capture-close:hover, .video-dialog .video-dialog-close:hover { background: #79662b16; color: var(--note-ink); border-color: var(--note-line); }
+
+:is(.capture-card, .video-dialog) .video-editor { gap: 11px; }
+:is(.capture-card, .video-dialog) .video-preview {
+  overflow: visible;
+  min-height: 100px;
+  margin: 3px 0 2px;
+  border: 6px solid #fffdf4;
+  border-bottom-width: 23px;
+  border-radius: 2px 3px 2px 4px;
+  background: #292a23;
+  box-shadow: 1px 3px 7px #604a3030, 0 0 0 1px #6a51301a;
+}
+.capture-card:has(.video-editor) .video-preview { aspect-ratio: 16 / 9; }
+:is(.capture-card, .video-dialog) .video-source { object-fit: contain; }
+/* Translucent, slightly torn washi tape. Keep it clear of playback controls. */
+:is(.capture-card, .video-dialog) .video-preview::before,
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original)::before,
+.video-dock-thumb::before {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  width: 35px;
+  height: 12px;
+  top: -2px;
+  left: -8px;
+  transform: rotate(-36deg);
+  background: repeating-linear-gradient(90deg, #f4e9c54d 0 3px, #d6c8a040 3px 4px), #e5d7b5b8;
+  box-shadow: 0 1px 2px #3d302425;
+  clip-path: polygon(2% 0, 96% 3%, 100% 18%, 96% 34%, 100% 52%, 97% 73%, 100% 96%, 3% 100%, 0 82%, 3% 65%, 0 45%, 3% 26%);
+}
+:is(.capture-card, .video-dialog) .video-preview::before { width: 57px; height: 19px; top: -5px; left: -15px; transform: rotate(-29deg); }
+:is(.capture-card, .video-dialog) .video-first-frame { bottom: -21px; left: 2px; padding: 1px 3px; background: none; color: #756c56; font: 600 9px/1.7 var(--sans); letter-spacing: .12em; }
+:is(.capture-card, .video-dialog) .video-name {
+  padding: 0 2px 5px;
+  color: var(--note-ink);
+  font: 600 24px/1.2 var(--note-hand);
+  border-bottom: 1px dashed var(--note-line);
+}
+:is(.capture-card, .video-dialog) .video-name:focus { border-bottom-color: var(--note-green); }
+:is(.capture-card, .video-dialog) .video-prompt-heading { gap: 6px; color: var(--note-muted); }
+:is(.capture-card, .video-dialog) .video-prompt-heading label { font: 600 10px/1.5 var(--sans); text-transform: uppercase; letter-spacing: .11em; }
+:is(.capture-card, .video-dialog) .video-expand {
+  min-height: 32px;
+  padding: 4px 7px;
+  border: 1px solid #a1945a66;
+  border-radius: 4px 7px 4px 6px;
+  color: var(--note-ink);
+  background: #fff8db55;
+  font: 500 11px/1.3 var(--sans);
+  white-space: nowrap;
+}
+:is(.capture-card, .video-dialog) .video-expand::before { content: '⤢'; font: 18px/1 var(--sans); }
+:is(.capture-card, .video-dialog) .is-expanded .video-expand::before { content: '⤡'; }
+:is(.capture-card, .video-dialog) .video-expand:hover { background: #fffae5; border-color: #7f805e; }
+:is(.capture-card, .video-dialog) .video-prompt {
+  min-height: 113px;
+  max-height: min(40dvh, 400px);
+  padding: 7px 10px 9px;
+  border: 1px solid #a1945a77;
+  border-radius: 5px 3px 7px 3px / 3px 6px 3px 5px;
+  color: #354137;
+  caret-color: var(--note-green);
+  font: 400 24px/32px var(--note-hand);
+  background: repeating-linear-gradient(transparent 0 31px, #9e90542b 31px 32px) 0 7px / 100% 32px, #fff8d92e;
+  box-shadow: inset 0 1px 4px #a18b3610;
+  transition: border-color .15s, box-shadow .15s;
+}
+:is(.capture-card, .video-dialog) .video-prompt::placeholder { color: #786e50; opacity: 1; }
+:is(.capture-card, .video-dialog) .video-prompt:focus { border-color: var(--note-green); outline: 2px solid #35534838; outline-offset: 2px; background-color: #fff8d97a; }
+:is(.capture-card, .video-dialog) .video-prompt[readonly] { opacity: 1; }
+:is(.capture-card, .video-dialog) .video-action-row { gap: 14px; margin-top: 3px; }
+:is(.capture-card, .video-dialog) .video-model { color: var(--note-muted); font-size: 10px; }
+:is(.capture-card, .video-dialog) .video-action.primary {
+  position: relative;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 132px;
+  min-height: 46px;
+  padding: 4px 20px 7px;
+  border: 2px solid #293f35;
+  border-radius: 7px 4px 9px 4px / 4px 8px 4px 7px;
+  color: #fffae7;
+  background: var(--note-green);
+  font: 700 27px/1 var(--note-hand);
+  box-shadow: 2px 3px 0 #263c32;
+  transform: rotate(-1deg);
+  transition: background .15s, transform .15s, box-shadow .15s;
+}
+:is(.capture-card, .video-dialog) .video-action::before { content: ''; position: absolute; pointer-events: none; inset: 2px -5px -4px 1px; border: 1px solid #293f3599; border-radius: 5px 9px 5px 11px; transform: rotate(1.5deg); }
+:is(.capture-card, .video-dialog) .video-action::after { content: '↗'; margin-left: 8px; font: 25px/1 var(--note-hand); }
+:is(.capture-card, .video-dialog) .video-action.primary:hover:not(:disabled) { background: #426657; transform: rotate(0); box-shadow: 2px 4px 0 #263c32; }
+:is(.capture-card, .video-dialog) .video-action.primary:active:not(:disabled) { transform: translate(1px, 2px); box-shadow: 1px 1px 0 #263c32; }
+:is(.capture-card, .video-dialog) .video-action.primary:disabled { opacity: .55; box-shadow: 1px 2px 0 #263c32; }
+:is(.capture-card, .video-dialog) .video-editor-status { color: var(--note-muted); font-size: 11px; line-height: 1.5; }
+:is(.capture-card, .video-dialog) .video-editor-status.is-error { color: #923f2e; }
+
+/* White photo margins, corner tape and an ink outline that is independent of keyboard focus. */
+:is(.capture-card, .video-dialog) .video-variants, .video-dock-thumbs {
+  gap: 14px;
+  padding: 10px 8px 12px;
+  scroll-padding-inline: 8px;
+  scrollbar-color: #91805288 transparent;
+}
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original), .video-dock-thumb {
+  position: relative;
+  isolation: isolate;
+  flex: 0 0 82px;
+  width: 82px;
+  height: 64px;
+  overflow: visible;
+  border: 0;
+  border-radius: 1px 2px 1px 2px;
+  background: #fffdf4;
+  color: #355348;
+  box-shadow: 1px 3px 5px #30251530;
+  transform: rotate(-2deg);
+  transition: transform .15s, box-shadow .15s;
+}
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original):nth-child(even), .video-dock-thumb:nth-child(even) { transform: rotate(2deg); }
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original):hover, .video-dock-thumb:hover { background: #fffdf4; transform: translateY(-2px); box-shadow: 1px 4px 7px #30251540; }
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original) img, .video-dock-thumb img { inset: 4px 4px auto; width: calc(100% - 8px); height: calc(100% - 17px); object-fit: cover; }
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original) .video-thumb-title, .video-dock-thumb .video-thumb-title { bottom: 0; height: 13px; padding: 0 3px; background: none; color: #655e4d; font: 600 8px/13px var(--sans); letter-spacing: .02em; }
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original)[aria-pressed='true'] { border: 0; }
+:is(.capture-card, .video-dialog) :is(.video-variant, .video-original)[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+  inset: -5px -6px;
+  border: 2px solid #355348;
+  border-radius: 5% 4% 7% 3% / 4% 7% 3% 8%;
+  outline: 1px solid #35534899;
+  outline-offset: 2px;
+  transform: rotate(1deg);
+}
+.capture-card:has(.video-editor) .capture-actions { align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 10px; border-top: 1px dashed var(--note-line); }
+.capture-card:has(.video-editor) .capture-actions :is(.button, button) { min-height: 32px; padding: 3px 5px; border: 0; border-radius: 3px; color: var(--note-muted); background: transparent; font-size: 11px; text-decoration: underline; text-decoration-color: #a1945a99; text-underline-offset: 3px; }
+.capture-card:has(.video-editor) .capture-actions :is(.button, button):hover { color: var(--note-ink); background: #79662b12; }
+:is(.capture-card, .video-dialog) :is(button, a, input):focus-visible, .video-dock-thumb:focus-visible { outline: 2px solid #527b88; outline-offset: 4px; }
+
+.video-dialog { width: min(590px, calc(100vw - 32px)); padding: 24px 28px; }
+.video-dialog::backdrop { background: #19190f99; backdrop-filter: blur(6px); }
+.video-dialog .video-dialog-head { margin-bottom: 20px; }
+.video-dialog .video-dialog-title { color: var(--note-ink); font: 600 32px/1.15 var(--note-hand); }
+.video-dialog .video-preview { aspect-ratio: 16 / 9; }
+.video-dialog .video-note { color: var(--note-muted); }
+
+/* The existing expanded state enlarges the whole work surface, keeping the same live editor/draft. */
+@media (min-width: 761px) {
+  .viewer .capture-card:has(.video-editor.is-expanded) {
+    inset: 50% auto auto 50%;
+    width: min(820px, calc(100% - 64px));
+    max-height: calc(100dvh - 64px);
+    padding: 25px 30px 20px;
+    transform: translate(-50%, -50%);
+    animation: none;
+    transition: none;
+    z-index: 16;
+  }
+  .capture-card:has(.is-expanded) .capture-kicker { margin-bottom: 20px; }
+  .capture-card:has(.is-expanded) .capture-heading { font-size: 34px; }
+  .capture-card .video-editor.is-expanded { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 26px; align-items: start; }
+  .capture-card .is-expanded .video-preview { grid-column: 1; grid-row: 1 / 6; margin-top: 10px; aspect-ratio: 4 / 3; }
+  .capture-card .is-expanded .video-name { grid-column: 2; grid-row: 1; }
+  .capture-card .is-expanded .video-prompt-heading { grid-column: 2; grid-row: 2; }
+  .capture-card .is-expanded .video-prompt { grid-column: 2; grid-row: 3; min-height: 210px; height: 100%; max-height: 34dvh; }
+  .capture-card .is-expanded .video-action-row { grid-column: 2; grid-row: 4; }
+  .capture-card .is-expanded .video-editor-status { grid-column: 2; grid-row: 5; }
+  .capture-card .is-expanded .video-variants { grid-column: 1 / -1; }
+  .video-dialog:has(.is-expanded) { width: min(760px, calc(100vw - 64px)); }
+  .video-dialog .is-expanded .video-preview { max-height: 32dvh; }
+}
+@media (max-width: 760px) {
+  .capture-card:has(.video-editor) { left: 14px; right: 14px; width: auto; padding: 16px 19px 13px; bottom: calc(144px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 220px); }
+  .capture-card:has(.video-editor) .video-preview { aspect-ratio: 16 / 7; min-height: 90px; }
+  .capture-card:has(.video-editor.is-expanded) { top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-height: none; z-index: 16; }
+  .capture-card:has(.is-expanded) .video-prompt { min-height: 190px; max-height: 35dvh; }
+  .video-dialog { padding: 20px; max-height: calc(100dvh - 32px); }
+  .video-dialog .video-dialog-title { font-size: 29px; }
+  .video-dialog .is-expanded .video-preview { max-height: 26dvh; }
+}
+@media (max-height: 700px) {
+  .capture-card:has(.video-editor) { bottom: 126px; max-height: calc(100dvh - 150px); }
+  .capture-card:has(.video-editor) .video-preview { min-height: 70px; max-height: 135px; }
+  .capture-card:has(.video-editor) .video-prompt { min-height: 81px; }
+  .capture-card:has(.video-editor.is-expanded) { max-height: calc(100dvh - 40px); }
+}
+/* Keep Action in reach while the image and handwritten prompt scroll on a small work surface. */
+@media (max-width: 760px), (max-height: 700px) {
+  :is(.capture-card, .video-dialog) .video-action-row { position: sticky; bottom: 0; z-index: 4; margin-inline: -4px; padding: 8px 4px; border-top: 1px solid var(--note-line); background: #f4e4a9; box-shadow: 0 -6px 12px #f4e4a999; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.capture-card, .video-dialog) :is(.video-action.primary, .video-prompt, .video-variant, .video-original), .video-dock-thumb { transition: none; }
+}

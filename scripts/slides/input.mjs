@@ -18,7 +18,12 @@ try {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     const state = () => page.evaluate(() => window.__wom.space.state());
-    const rest = () => page.waitForFunction(() => { const s = window.__wom?.space?.state(); return s && s.mode === 'browse' && Math.abs(s.focus - s.target) < 0.001; }, null, { timeout: 20000, polling: 100 });
+    const rest = () => page.waitForFunction(() => {
+      const s = window.__wom?.space?.state();
+      return s && s.mode === 'browse' && Math.abs(s.focus - s.target) < 0.001 &&
+        s.zoom === s.zoomTarget && s.extraction === s.extractionTarget &&
+        (s.extractionTarget !== 0 || s.extracted === null);
+    }, null, { timeout: 20000, polling: 100 });
     await page.goto(`${BASE}/?debug#/space`);
     await page.waitForFunction(() => window.__wom?.space, null, { timeout: 30000 });
     await page.keyboard.press('Home');
@@ -26,18 +31,18 @@ try {
     const keys = await page.evaluate(() => window.__wom.space.keys());
     if (!reduced) {
       await page.mouse.move(640, 400);
-      // One notch of a mouse wheel is 100 px: about one slide, and the row snaps to it when the wheel stops.
-      await page.mouse.wheel(0, 100);
+      // Horizontal wheel input browses chronology; vertical wheel input controls prism zoom.
+      await page.mouse.wheel(100, 0);
       await sleep(400);
       await rest();
-      check('one wheel notch moves to the next slide and snaps', (await state()).current === 1, JSON.stringify(await state()));
+      check('one horizontal wheel notch moves to the next slide and snaps', (await state()).current === 1, JSON.stringify(await state()));
       await page.mouse.move(900, 300);
       await page.mouse.down();
       for (let i = 1; i <= 8; i++) { await page.mouse.move(900 + i * 20, 300); await sleep(16); }
       await page.mouse.up();
       await rest();
       check('dragging right goes back', (await state()).current === 0, JSON.stringify(await state()));
-      // A click on the slide behind brings it to the front (and does not play it).
+      // A click on the slide behind extracts it for inspection before world entry.
       // The first point across the slide behind that is not covered by the one in front.
       const box = await page.evaluate(() => {
         const el = [...document.querySelectorAll('.space-3d .slide:not(.flying)')][1];
@@ -52,7 +57,10 @@ try {
       if (box) await page.mouse.click(box.x, box.y);
       await rest();
       const s = await state();
-      check('a click on the slide behind brings it to the front', s.current === 1 && s.mode === 'browse', JSON.stringify(s));
+      check('a click on the slide behind stages it without playing', s.extracted === keys[1] && s.extraction === 1 && s.mode === 'browse', JSON.stringify(s));
+      await page.keyboard.press('Escape');
+      await rest();
+      check('Escape returns the staged plane to the archive', (await state()).extracted === null);
       // Esc from a sub space goes back to the whole stack.
       const world = keys[0].split('.')[0];
       await page.goto(`${BASE}/?debug#/space/world/${world}`);
@@ -71,6 +79,10 @@ try {
       const q2 = await page.evaluate(() => document.querySelector('.space-3d .slide.is-front')?.style.transform ?? '');
       check(`${tag}the pointer does not swing the camera`, q === q2);
     }
+    await page.keyboard.press('Enter');
+    await rest();
+    check(`${tag}first Enter stages the focused slide`, (await state()).extracted === (await state()).key && (await state()).extraction === 1 && !(new URL(page.url())).pathname.startsWith('/u/'), JSON.stringify(await state()));
+    const playedKey = (await state()).key;
     const t0 = Date.now();
     await page.keyboard.press('Enter');
     await page.waitForURL((u) => u.pathname.startsWith('/u/'), { timeout: 20000, waitUntil: 'commit' });
@@ -78,6 +90,14 @@ try {
     check(`${tag}Enter plays the slide into its world`, reduced ? ms < 1100 : ms > 1000 && ms < 3000, `${ms} ms to the viewer`);
     await page.waitForFunction(() => !document.querySelector('.slide-cover'), null, { timeout: 30000 });
     check(`${tag}the cover is gone in the viewer`, true);
+    await page.click('a.back[title="Back to the slides"]');
+    await page.waitForFunction((key) => {
+      const s = window.__wom?.space?.state();
+      return document.querySelector('.space-titles h1')?.textContent === 'Memories' &&
+        s?.mode === 'browse' && s.extracted === key && s.extraction === 1 && s.isolate === 0;
+    }, playedKey, { timeout: 30000 });
+    check(`${tag}viewer back restores the same extracted memory`, (await state()).key === playedKey);
+    check(`${tag}return clears temporary cover and flyer`, await page.locator('.slide-cover,.slide.flying').count() === 0);
     check(`${tag}no page errors`, errors.length === 0, errors.join(' | '));
     await ctx.close();
   }

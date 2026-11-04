@@ -36,6 +36,7 @@ export function resultsView(ctx: MetricsContext, task: TaskInfo): View {
     if (target?.case) queueMicrotask(() => cases.open(target!.case!));
     return [
       runLine(run),
+      run.extras.notice ? notice(run.extras.notice) : null,
       guide(run),
       leaderboardPanel(run, stats),
       chartPanel(run, stats),
@@ -343,7 +344,7 @@ function matrixPanel(run: RunView, open: (id: string) => void) {
 function tablesPanel(run: RunView) {
   const tables = run.extras.tables;
   if (!tables.length) return null;
-  const cell = (c: { value: number | null; secondary?: number | null }, strong = false) => h('td.cell', { style: `background:${heat(c.value, 0.4)}` },
+  const cell = (c: { value: number | null; secondary?: number | null }, strong = false, metric?: string) => h('td.cell', { style: `background:${heat(metric ? goodness(metricOf(run.task, metric), c.value) : c.value, 0.4)}` },
     strong ? h('b', fx(c.value)) : fx(c.value), c.secondary !== undefined ? h('small', ` / ${fx(c.secondary)}`) : null);
   return panel({
     title: run.extras.tablesTitle ?? 'Tables',
@@ -356,8 +357,8 @@ function tablesPanel(run: RunView) {
       h('thead', h('tr', h('th.left', ''), t.columns.map((c) => h('th', c.label)), t.rows.some((r) => r.total) ? h('th', 'Mean') : null)),
       h('tbody', t.rows.map((row) => h('tr',
         h('th.left', { scope: 'row' }, row.label, row.sub ? h('small', ` ${row.sub}`) : null),
-        row.cells.map((c) => cell(c)),
-        row.total ? cell(row.total, true) : null,
+        row.cells.map((c) => cell(c, false, t.metric)),
+        row.total ? cell(row.total, true, t.metric) : null,
       ))),
     ),
   )));
@@ -499,7 +500,9 @@ function caseRow(ctx: MetricsContext, run: RunView, c: CaseView, best: { value: 
     d.append(h('div.case-body',
       c.note ? h('p.note-block', { class: c.excluded ? 'warn' : '' }, c.excluded ? `Not in the summary. ${c.note}` : c.note) : null,
       c.group || links.length ? h('p.muted.small', c.group ?? '', ...links.flatMap((l) => [' · ', h('a', { href: l.href }, l.label)])) : null,
-      task.artifacts.filter((a) => c.artifacts[a.id]).map((a) => h('figure.shot',
+      task.artifacts.filter((a) => c.artifacts[a.id]).map((a) => a.kind === 'file'
+        ? h('p', h('a', { href: c.artifacts[a.id], target: '_blank', rel: 'noopener' }, a.label))
+        : h('figure.shot',
         h('img.bench-overlay', { src: c.artifacts[a.id], alt: `${c.title}: ${a.label}`, loading: 'lazy' }),
         h('figcaption', a.label))),
       h('div.table-wrap', h('table.bench-table.compact',

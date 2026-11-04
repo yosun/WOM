@@ -65,7 +65,7 @@ export interface ToolDef {
 export type ChatMessage =
   | { role: 'system'; content: string }
   | { role: 'user'; content: string | ChatContent[] }
-  | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
+  | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[]; responseItems?: Record<string, unknown>[] }
   | { role: 'tool'; tool_call_id: string; content: string };
 
 export interface ChatRequest {
@@ -80,7 +80,7 @@ export interface ChatRequest {
 }
 
 export interface ChatResult {
-  message: { content: string | null; tool_calls?: ToolCall[] };
+  message: { content: string | null; tool_calls?: ToolCall[]; responseItems?: Record<string, unknown>[] };
   finishReason: string;
   usage: MetaUsage;
   costUsd: number;

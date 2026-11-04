@@ -1,7 +1,8 @@
 // Muse Spark reviews SAM's mask candidates: each candidate is shown as a cutout and rated for how
 // cleanly it isolates the named object. One request covers every object.
 import sharp from 'sharp';
-import { chatJson, toDataUrl } from '../clients/meta.ts';
+import { toDataUrl } from '../clients/meta.ts';
+import { modelJson as chatJson } from '../clients/llm.ts';
 import type { Mask } from '../geometry/mask.ts';
 import type { Box, PlannerModel } from '../types.ts';
 

@@ -1,0 +1,20 @@
+{
+  "protocol": "wom-par-v1",
+  "task": "Reconstruct a faithful, coherent, explorable static world from one photograph.",
+  "input": "The same source photograph; no additional target-scene photographs or geometry. Declare external priors and manual assistance.",
+  "resources": "Unrestricted offline generation for this quality track. Report generation cost, time, hardware, seeds and manual assistance separately; this is not a matched-cost claim.",
+  "alignment": "One documented rigid/similarity registration into the frozen source-camera frame, fixed before capturing. No pose-dependent warps, camera changes, hiding layers or per-view regeneration.",
+  "camera": "Each scene freezes vertical field of view, output aspect and every position/quaternion. Entrants must use that exact path. Candidate geometry must never select or skip cameras.",
+  "viewport": { "width": 1280, "height": 800, "pixelRatio": 1 },
+  "frames": { "width": 1024, "height": 640, "type": "jpeg", "settleMs": 900 },
+  "path": {
+    "selection": "Pilot endpoints were selected once from the saved reference's admitted patrol-v3 views. They are frozen before any challenger is judged.",
+    "interpolation": "Return to the source camera between excursions. Three equal position/quaternion-slerp steps each way, plus the initial source frame. Every sample is required.",
+    "stepsEachWay": 3,
+    "reviewFps": 6
+  },
+  "rendering": "One capture build and settings per representation, declared and frozen before comparisons. No photo overlay, source-view transition, labels identifying the method, selective sharpening, beautification or hidden postprocessing. WOM pilot uses the saved active fitter and saved layout, first world-splat variant (500k), all saved visible layers, Three.js/Spark and a pinned web build/browser recorded in evidence.",
+  "review": "Show the original photograph, both complete ordered walkthroughs and full-resolution endpoint frames. Anonymous A/B labels; counterbalance presentation order. Never use defect finding text or prior scores as ratings.",
+  "coverage": "All frozen scenes, generation trials and camera samples are required. A genuine generation/render failure with hashed logs loses against success; both failures tie. Absent evidence or absent ballots is incomplete, not a tie or a dropped scene.",
+  "scope": "The local pilot tests visual exploration, not interactive control quality, dynamic-world behavior, a population of photographs, or verified geometry in unseen regions. New tasks, capture builds, budgets, datasets or reference outputs require a new course digest."
+}

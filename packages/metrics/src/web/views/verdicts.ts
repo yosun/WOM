@@ -199,7 +199,9 @@ function casesPanel(ctx: MetricsContext, run: RunView) {
         c.note ? h('p.note-block', c.note) : null,
         found.length ? h('ul.diag', found.map((f) => h('li', `${f.severity ? `${f.severity}: ` : ''}${f.what}${f.where ? ` (${f.where})` : ''}`))) : (j ? h('p.muted', 'Nothing found.') : null),
         j?.note ? h('p.muted', j.note) : null,
-        task.artifacts.filter((a) => c.artifacts[a.id]).map((a) => h('figure.shot',
+        task.artifacts.filter((a) => c.artifacts[a.id]).map((a) => a.kind === 'file'
+          ? h('p', h('a', { href: c.artifacts[a.id], target: '_blank', rel: 'noopener' }, a.label))
+          : h('figure.shot',
           h('img.bench-overlay', { src: c.artifacts[a.id], alt: `${c.title}: ${a.label}`, loading: 'lazy' }),
           h('figcaption', a.label))),
         links.length ? h('p.muted.small', ...links.flatMap((x, i) => [i ? ' · ' : '', h('a', { href: x.href }, x.label)])) : null,

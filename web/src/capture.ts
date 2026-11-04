@@ -1,12 +1,9 @@
-// What a person sees after capturing a moment inside a world: a quick flash, then a small card with the picture,
-// its name and optional caption (which can be changed right there), a way to look at it among the slides, and a
-// way to take it back.
-//
-// The picture and the camera are saved by the viewer (`saveSlide`, as a slide of the world). This module only
-// tells the person that it worked, so nobody has to know what a "slide" or a "camera entry" is to use it.
+// A saved capture becomes a video first frame: name it, describe its motion, and generate from this exact image.
+// The viewer saves the picture and camera; the video studio owns generation history and inline playback.
 import { api, type SlideDoc } from './api.ts';
 import { h, toast } from './dom.ts';
 import { slideKey, spaceUrl } from './slides/spaces.ts';
+import type { VideoStudio, VideoEditor } from './videos.ts';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -37,18 +34,15 @@ export function cameraIcon(): SVGSVGElement {
   return svg;
 }
 
-/** How long the card stays when the pointer and the keyboard are elsewhere. */
-const SHOW_MS = 9000;
-
 export interface CaptureCard {
   /** The moment the picture is taken: a quick flash over the view (not drawn when motion is turned down). */
   flash(): void;
   /** Show the card for a slide that was just saved. `preview` is the picture that was saved. */
-  show(slide: SlideDoc, preview: Blob): void;
+  show(slide: SlideDoc, preview?: Blob): void;
   dispose(): void;
 }
 
-export function createCaptureCard(mount: HTMLElement): CaptureCard {
+export function createCaptureCard(mount: HTMLElement, studio: VideoStudio): CaptureCard {
   // Announced to screen readers; the card itself is not a live region, because content that is already in
   // a region when it is inserted is often not read out.
   const live = h('div.capture-live', { role: 'status', 'aria-live': 'polite' });
@@ -56,11 +50,12 @@ export function createCaptureCard(mount: HTMLElement): CaptureCard {
 
   let card: HTMLElement | null = null;
   let previewUrl = '';
-  let timer = 0;
+  let editor: VideoEditor | null = null;
   let gone = false;
 
   const close = () => {
-    clearTimeout(timer);
+    editor?.dispose();
+    editor = null;
     card?.remove();
     card = null;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -80,118 +75,41 @@ export function createCaptureCard(mount: HTMLElement): CaptureCard {
     show(slide, preview) {
       if (gone) return;
       close();
-      previewUrl = URL.createObjectURL(preview);
-      let title = slide.title;
-      let undone = false;
-
-      // (h() leaves out a prop whose value is `false`, so these two are the strings the attributes take.)
-      const name = h('input.capture-name', { type: 'text', value: title, maxLength: 120, spellcheck: 'false', autocomplete: 'off', title: 'Click to rename', 'aria-label': 'Name this capture' }) as HTMLInputElement;
-      const caption = h('textarea.capture-caption', { rows: 2, maxLength: 2000, placeholder: 'Add a caption (optional)', 'aria-label': 'Caption this capture' }) as HTMLTextAreaElement;
-      caption.value = slide.caption ?? '';
-      const undo = h('button', { type: 'button', title: 'Take this capture back: the picture is removed and nothing else changes' }, 'Undo') as HTMLButtonElement;
-      const dismiss = h('button.capture-close', { type: 'button', 'aria-label': 'Dismiss', title: 'Dismiss' }, '×');
+      if (preview) previewUrl = URL.createObjectURL(preview);
+      const undo = h('button', { type: 'button', title: 'Remove this capture' }, 'Undo') as HTMLButtonElement;
+      const dismiss = h('button.capture-close', { type: 'button', 'aria-label': 'Dismiss capture', title: 'Dismiss capture' }, '×');
       const see = h('a.button', {
         href: spaceUrl(`world/${slide.world}`, slideKey(slide.world, slide.id)),
-        target: '_blank',
-        rel: 'noopener',
-        title: 'Open this world\'s slides on this capture, in a new tab',
+        target: '_blank', rel: 'noopener', title: 'Open this capture in the slides',
       }, 'See in slides');
-      const el = h('aside.capture-card',
-        h('img.capture-thumb', { src: previewUrl, alt: 'The picture that was captured', draggable: 'false' }),
-        h('div.capture-body',
-          h('p.capture-kicker', 'Captured. Come back to this spot from the slides.'),
-          name,
-          caption,
-          h('div.capture-actions', see, undo),
-        ),
+      const body = h('div.capture-body');
+      const el = h('aside.capture-card', { 'aria-label': 'Animate this capture' },
+        h('p.capture-kicker', h('span.capture-saved', 'Captured'), h('span.capture-heading', 'Make this moment move')),
+        body,
+        h('div.capture-actions', see, undo),
         dismiss,
       );
-
-      // The card stays while it is being used and goes a few seconds after it is left alone.
-      const inUse = () => el.matches(':hover') || el.contains(document.activeElement);
-      const arm = () => {
-        clearTimeout(timer);
-        timer = window.setTimeout(() => { if (inUse()) arm(); else close(); }, SHOW_MS);
-      };
-      el.addEventListener('pointerenter', () => clearTimeout(timer));
-      el.addEventListener('pointerleave', arm);
-      el.addEventListener('focusout', () => setTimeout(() => { if (card === el && !inUse()) arm(); }, 0));
+      editor = studio.mountEditor(slide, body, { previewUrl: previewUrl || undefined });
+      // Explicit dismissal leaves time to write and expand the prompt. The studio keeps jobs running afterward.
       dismiss.addEventListener('click', close);
-
-      // Typing a name must not walk the camera: the viewer's controls listen to every key on the page.
-      name.addEventListener('keydown', (e) => {
-        e.stopPropagation();
-        if (e.key === 'Enter') { e.preventDefault(); name.blur(); }
-        else if (e.key === 'Escape') { name.value = title; name.blur(); }
-      });
-      caption.addEventListener('keydown', (e) => {
-        e.stopPropagation();
-        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); caption.blur(); }
-        else if (e.key === 'Escape') { caption.value = slide.caption ?? ''; caption.blur(); }
-      });
-      name.addEventListener('focus', () => clearTimeout(timer));
-      caption.addEventListener('focus', () => clearTimeout(timer));
-      name.addEventListener('change', async () => {
-        const wanted = name.value.trim();
-        if (!wanted || wanted === title) { name.value = title; return; }
-        try {
-          const renamed = await api.updateSlide(slide.world, slide.id, { title: wanted });
-          title = renamed.title;
-          // The server tidies a name (one line, no odd characters); show what was kept, unless typing went on.
-          if (name.value.trim() === wanted) name.value = title;
-        } catch (err) {
-          if (!undone) toast((err as Error).message, 'error');
-          name.value = title;
-        }
-      });
-
-      caption.addEventListener('change', async () => {
-        const wanted = caption.value;
-        if (undone || wanted === (slide.caption ?? '')) { caption.value = slide.caption ?? ''; return; }
-        try {
-          const updated = await api.updateSlide(slide.world, slide.id, { caption: wanted });
-          slide.caption = updated.caption;
-          if (caption.value === wanted) caption.value = updated.caption ?? '';
-        } catch (err) {
-          if (!undone) toast((err as Error).message, 'error');
-          caption.value = slide.caption ?? '';
-        }
-      });
-
-      const cancelPendingEdits = () => {
-        undone = true;
-        name.value = title;
-        caption.value = slide.caption ?? '';
-      };
-      undo.addEventListener('pointerdown', cancelPendingEdits);
-      undo.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') cancelPendingEdits();
-      });
+      el.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+      }, { capture: true });
       undo.addEventListener('click', async () => {
         undo.disabled = true;
-        name.disabled = true;
-        caption.disabled = true;
-        // Marked before the request: pressing Undo right after typing a name or caption also sends that edit
-        // when the field loses focus first, and if the delete lands first, that 404 is not worth showing.
-        undone = true;
         try {
           await api.deleteSlide(slide.world, slide.id);
           if (card === el) close();
           toast('Capture removed.');
         } catch (err) {
-          undone = false;
           undo.disabled = false;
-          name.disabled = false;
-          caption.disabled = false;
           toast((err as Error).message, 'error');
         }
       });
-
       card = el;
       mount.append(el);
-      arm();
       live.textContent = '';
-      requestAnimationFrame(() => { live.textContent = `Captured. Saved as ${title}.`; });
+      requestAnimationFrame(() => { if (!gone) live.textContent = `Captured. Saved as ${slide.title}.`; });
     },
 
     dispose() {

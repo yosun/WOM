@@ -32,7 +32,7 @@ export const METRICS: MetricSpec[] = [
 
 export const FAMILIES: FamilySpec[] = [
   { id: 'geometry', label: 'Geometry only', color: '#8ab8f0', description: 'No model: the fitter searches for the pose that matches the mask.' },
-  { id: 'model', label: 'Model answer', color: '#bfa4ee', description: 'One structured answer from a Muse model, used as given.' },
+  { id: 'model', label: 'Model answer', color: '#bfa4ee', description: 'One structured answer from a language model, used as given.' },
   { id: 'refined', label: 'Model + geometry', color: '#6fd0c0', description: 'The model\'s answer, finished by the fitter.' },
   { id: 'agent', label: 'Agent with tools', color: '#eaa1c0', description: 'The model renders and scores placements, calls the fitter, then submits one.' },
 ];
@@ -63,12 +63,13 @@ const KINDS: Record<PlacementKind, { label: string; family: string; order: numbe
   },
   agent: {
     label: 'Agent', family: 'agent', order: 5,
-    description: 'The model with tools: it renders and scores placements, runs the grounded fitter and reads MoGe depth, then submits one.',
+    description: 'The model renders and scores placements, compares the original grounded fit with 32-round refinement, reads MoGe depth, then submits a placement.',
   },
 };
 
 /** `spark` from `muse-spark-1.3`, for the short name beside a method. */
 export function shortModel(model: string): string {
+  if (model === 'gpt-6.1-sol') return 'Sol';
   const name = model.replace(/^muse-/, '').split('-')[0];
   return name ? name[0].toUpperCase() + name.slice(1) : model;
 }

@@ -33,11 +33,14 @@ import { buildCover, dropHandoff, giveHandoff, removeCover, takeHandoff } from '
 import { worldHref } from './routes.ts';
 import { slideKey, spaceUrl } from './slides/spaces.ts';
 import { cameraIcon, createCaptureCard } from './capture.ts';
+import { createVideoStudio } from './videos.ts';
+import { placementAgentNeedsRun } from '../../server/src/placement.ts';
 
-/** Placement agents the viewer can run on demand; costs are benchmark means per object. */
+/** Placement agents the viewer can run on demand; Muse estimates are benchmark means per object. */
 const AGENTS = [
   { model: 'muse-spark-1.3', method: 'agent-spark', label: 'Muse Spark agent', perObjectUsd: 0.07 },
   { model: 'muse-wonder-1.0', method: 'agent-wonder', label: 'Muse Wonder agent', perObjectUsd: 0.1 },
+  { model: 'gpt-6.1-sol', method: 'agent-sol', label: 'GPT-6.1 Sol agent (experimental)', perObjectUsd: null },
 ] as const;
 
 interface ObjectEntry {
@@ -134,7 +137,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   showVisibility();
   const auth = userMenu();
   const backLink = h('a.back', { href: opts.from ? spaceUrl(opts.from, slideKey(id, slideId)) : new URL('#/', location.origin).href, title: opts.from ? 'Back to the slides' : 'Home' }, '←');
-  const top = h('header.viewer-top', backLink, titleEl, h('div.spacer'), auth, visBtn, shareBtn, flagBtn, backBtn, panelBtn, canEdit ? h('a.button', { href: worldHref(id, { handle: opts.handle, build: true }) }, 'Build details') : '');
+  const top = h('header.viewer-top', backLink, titleEl, h('div.spacer'), auth, visBtn, shareBtn, flagBtn, backBtn, panelBtn, h('a.button', { href: worldHref(id, { handle: opts.handle, build: true }) }, 'WOMetrics'));
   const panel = h('aside.side');
   const hint = h('div.hint');
   const HINT_WALK = 'W A S D to walk · drag to look · Shift to run · F to fly · O to flag a problem';
@@ -142,6 +145,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   const view = h('main.viewer', stage, top, panel, hint, captureBtn, ap.el);
   stage.append(backdrop, photo);
   root.append(view);
+  const videoStudio = createVideoStudio(view, id, { editable: canEdit });
   // The slide's cover sits over the stage and under the aperture until the photo and aperture show the same.
   let cover = handoff?.cover ?? null;
   if (cover) {
@@ -698,16 +702,19 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   }
 
   // The world's own choice of placement agents (run whenever its objects are rebuilt).
-  let worldAgents: string[] = AGENTS.map((a) => a.model);
+  let worldAgents: string[] = ['muse-spark-1.3', 'muse-wonder-1.0'];
 
   /** Choose which agents place this world's objects, and run a chosen one that has not placed them yet. */
   function agentChooser(d: SceneDoc) {
     if (!objects.length) return '';
-    const placed = new Set((d.placement?.methods ?? []).map((m) => m.id));
-    const status = h('p.muted', 'Chosen agents place every object with the benchmark\'s tools, now and whenever this world\'s objects are rebuilt. On the benchmarked objects they mostly agreed with the grounded fitter.');
+    const parts = new Set(manifest?.plan?.objects.filter((o) => o.part).map((o) => o.id));
+    if (d.objects.every((o) => parts.has(o.id))) return '';
+    const previous = new Set((d.placement?.methods ?? []).map((m) => m.id));
+    const placed = new Set(AGENTS.filter((a) => !placementAgentNeedsRun(d, a.method, manifest?.plan?.objects)).map((a) => a.method));
+    const status = h('p.muted', 'Agents use the updated fitter and check each placement against the photo. Update existing placements here, or compare the results under Placement.');
     const boxes = AGENTS.map((a) => {
       const cb = h('input', { type: 'checkbox', checked: worldAgents.includes(a.model) }) as HTMLInputElement;
-      const row = h('label.row', cb, h('span', a.label), h('span.score', placed.has(a.method) ? 'placed' : `about ${fmtUsd(a.perObjectUsd * objects.length)}`));
+      const row = h('label.row', cb, h('span', a.label), h('span.score', placed.has(a.method) ? 'placed' : previous.has(a.method) ? 'update available' : a.perObjectUsd === null ? 'usage-priced' : `about ${fmtUsd(a.perObjectUsd * objects.length)}`));
       return { a, cb, row };
     });
     const runBtn = h('button', { type: 'button' }, 'Run chosen agents') as HTMLButtonElement;
@@ -715,7 +722,8 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     const refreshRun = () => {
       const missing = boxes.filter((b) => b.cb.checked && !placed.has(b.a.method));
       runBtn.hidden = missing.length === 0;
-      runBtn.textContent = `Run ${missing.map((b) => b.a.label.replace(' agent', '')).join(' and ')} · about ${fmtUsd(missing.reduce((s, b) => s + b.a.perObjectUsd, 0) * objects.length)}`;
+      const price = missing.some((b) => b.a.perObjectUsd === null) ? 'usage-priced · $3 agent budget' : `about ${fmtUsd(missing.reduce((s, b) => s + (b.a.perObjectUsd ?? 0), 0) * objects.length)}`;
+      runBtn.textContent = `Run ${missing.map((b) => b.a.label.replace(' agent', '')).join(' and ')} · ${price}`;
     };
     for (const b of boxes) {
       b.cb.addEventListener('change', async () => {
@@ -1126,6 +1134,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     worldAgents = manifest?.options.placementAgents ?? worldAgents;
     registerColliders();
     captureBtn.hidden = !canEdit;
+    videoStudio.setEditable(canEdit);
     showVisibility();
     buildPanel(d);
     // 3. Let Spark sort and draw a few frames while the light finishes tracing the aperture, then light it.
@@ -1162,7 +1171,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
   // ---------- slides: save a view as a way into this world ----------
 
   // The flash, and the card that confirms a capture and lets it be named or taken back (capture.ts).
-  const captureCard = createCaptureCard(view);
+  const captureCard = createCaptureCard(view, videoStudio);
 
   /** Exactly what the camera sees now (without colliders or the edit gizmo), and the camera that sees it. */
   async function captureView(): Promise<{ blob: Blob; entry: SlideEntry }> {
@@ -1238,6 +1247,7 @@ export function renderViewer(root: HTMLElement, id: string, opts: ViewerOptions 
     ro.disconnect();
     observer.dispose();
     captureCard.dispose();
+    videoStudio.dispose();
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('pointermove', onLook);
     document.documentElement.removeEventListener('mouseleave', onLookEnd);

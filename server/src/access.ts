@@ -1,6 +1,6 @@
 // Who may do what. identify() works out who is asking. guard() holds every /api, /files and /bench-files route to the rule
 // written for it in RULES, and a route with no rule is for administrators only. A world shared by link can be looked at
-// by anyone, with no sign-in. Changing a world, and everything about how it was made, belongs to its owner.
+// by anyone, with no sign-in. Generation facts have a separate safe report; changes and detailed build records belong to the owner.
 //
 // The same rule is written again in the database as row-level security on worlds (db/migrations/001_init.sql):
 // levelOf() mirrors worlds_read, so a bug here cannot show more than the database would.
@@ -71,6 +71,7 @@ const PUBLIC_FILES: RegExp[] = [
   /^objects\/[\w-]+(?:\/[\w-]+){0,2}\/(?:model[^/]*|preview[^/]*)\.(?:ply|glb|spz|png|jpg|webp)$/,
   /^objects\/[\w-]+\/cutout\.png$/,
   /^slides\/s[a-z0-9]{6,24}(?:-thumb)?\.jpg$/,
+  /^videos\/v[a-z0-9]{12,40}(?:\.(?:mp4|webm|mov)|-(?:thumb|source)\.jpg)$/,
 ];
 
 export function isPublicFile(rel: string): boolean {
@@ -133,6 +134,7 @@ interface Rule {
 const RULES: Rule[] = [
   { method: 'GET', re: /^\/api\/auth\/config$/, need: 'public' },
   { method: 'GET', re: /^\/api\/health$/, need: 'public' },
+  { method: 'GET', re: /^\/api\/wometrics\/setup-schema$/, need: 'public' },
   { method: 'GET', re: /^\/api\/me$/, need: 'public' },
   { method: 'PUT', re: /^\/api\/me\/handle$/, need: 'user' },
   { method: 'GET', re: /^\/api\/credits$/, need: 'user' },
@@ -148,7 +150,9 @@ const RULES: Rule[] = [
   // looking at a world that is shared
   { method: 'GET', re: /^\/api\/worlds\/([a-z0-9]+)$/, need: 'view' },
   { method: 'GET', re: /^\/api\/worlds\/([a-z0-9]+)\/scene$/, need: 'view' },
+  { method: 'GET', re: /^\/api\/worlds\/([a-z0-9]+)\/metrics$/, need: 'view' },
   { method: 'GET', re: /^\/api\/worlds\/([a-z0-9]+)\/slides$/, need: 'view' },
+  { method: 'GET', re: /^\/api\/worlds\/([a-z0-9]+)\/videos$/, need: 'view' },
   { method: 'GET', re: /^\/files\/([a-z0-9]+)\/.+$/, need: 'file' },
 
   // A signed-in visitor may flag a shared world. Reading and changing the observation ledger remains owner/admin-only.

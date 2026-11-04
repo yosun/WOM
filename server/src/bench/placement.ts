@@ -24,7 +24,7 @@ import {
 import { WORLDS_DIR } from '../config.ts';
 import { angleDiff, type Placement } from '../geometry/pose.ts';
 import type { Pose } from '../geometry/raster.ts';
-import type { DepthModel, MeshModel } from '../types.ts';
+import { MODEL_LABELS, type DepthModel, type MeshModel, type PlannerModel } from '../types.ts';
 import { BENCH_DIR } from './cache.ts';
 import { ASSET_MODELS, DEPTH_MODELS } from './catalog.ts';
 import { CaseRunner } from './case.ts';
@@ -357,7 +357,7 @@ export function museSubject(model: string, o: MuseOptions): Subject<PlacementDat
 
   return defineSubject<PlacementData, PlacementAnswer>({
     id: model,
-    label: `Muse ${shortModel(model)}`,
+    label: MODEL_LABELS[model as PlannerModel] ?? model,
     methods,
     async solve(c, ctx) {
       const { runner } = c.data;

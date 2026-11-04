@@ -6,6 +6,7 @@ import { dot, normalize, type Vec3 } from '../geometry/math.ts';
 import { hfovOf } from '../geometry/moge.ts';
 import { groundPose, placementFromPose, poseFromPlacement, type Placement } from '../geometry/pose.ts';
 import type { Pose } from '../geometry/raster.ts';
+import { PLACEMENT_AGENT_FIT } from '../placement.ts';
 import { gridToK, groundHeight, groundPointAt, mogePointAt, projectToGrid, type BenchAsset, type BenchObject, type BenchWorld } from './context.ts';
 import type { PlacementArgs, PlacementTask, Scored } from './llm.ts';
 import { evaluatePlacement } from './metrics.ts';
@@ -67,13 +68,14 @@ export class CaseRunner {
    * The fitter kept upright along gravity, then grounded: scaled about the camera so the base pivot sits on
    * the ground plane (same silhouette). This is the geometric answer in the same terms the models use.
    */
-  fitGrounded(yawCenter?: number, yawWindow?: number): { pose: Pose | null; factor: number; ms: number } {
+  fitGrounded(yawCenter?: number, yawWindow?: number, polish = false): { pose: Pose | null; factor: number; ms: number } {
     const { value, ms } = timed(() =>
       fitObject({
         ...this.fitInputs(),
         base: this.asset.frame.canon,
         upright: this.world.up,
         yawRange: yawCenter === undefined ? undefined : { center: yawCenter, window: yawWindow ?? 30 },
+        ...(polish ? PLACEMENT_AGENT_FIT : {}),
       }),
     );
     if (!value) return { pose: null, factor: 1, ms };
@@ -100,9 +102,15 @@ export class CaseRunner {
   };
 
   autoFit = async (yawCenter?: number, yawWindow?: number): Promise<Scored> => {
-    const { pose } = this.fitGrounded(yawCenter, yawWindow);
-    if (!pose) throw new Error('the fitter could not place this object');
-    return this.score(this.placementOf(pose), 'auto_fit');
+    const original = this.fitGrounded(yawCenter, yawWindow).pose;
+    const polished = this.fitGrounded(yawCenter, yawWindow, true).pose;
+    if (!original && !polished) throw new Error('the fitter could not place this object');
+    const [reference, refined] = await Promise.all([
+      original ? this.score(this.placementOf(original), 'auto_fit: original') : null,
+      polished ? this.score(this.placementOf(polished), 'auto_fit: polished') : null,
+    ]);
+    // The polish can improve colour while losing overlap. Guard the tool's actual grounded result.
+    return refined && (!reference || refined.metrics.iou > reference.metrics.iou) ? refined : reference!;
   };
 
   measure = (pts: { x: number; y: number }[]) => {

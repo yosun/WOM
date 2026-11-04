@@ -4,6 +4,7 @@
 // The active one becomes the object's base transform; the user picks it in the viewer.
 import { existsSync, readFileSync } from 'node:fs';
 import { CaseRunner } from '../bench/case.ts';
+import { modelProvider } from '../clients/llm.ts';
 import { DEFAULT_OPTIONS } from '../config.ts';
 import { BudgetExceeded, Spend } from '../bench/cache.ts';
 import { loadAsset, loadBenchWorld } from '../bench/context.ts';
@@ -11,8 +12,9 @@ import { agentPlacement } from '../bench/llm.ts';
 import { evaluatePlacement } from '../bench/metrics.ts';
 import { CV_TO_THREE, cvToThree, mul, quatFromMat3, type Mat3, type Vec3 } from '../geometry/math.ts';
 import type { Pose } from '../geometry/raster.ts';
+import { PLACEMENT_AGENT_REVISION } from '../placement.ts';
 import type { WorldHandle } from '../store.ts';
-import { AGENT_PLACEMENTS, PLACEMENT_METHODS, type PlacementMethod, type PlacementVariant, type PlannerModel, type SceneDoc } from '../types.ts';
+import { AGENT_PLACEMENTS, MODEL_LABELS, PLACEMENT_METHODS, type PlacementMethod, type PlacementVariant, type PlannerModel, type SceneDoc } from '../types.ts';
 import { errorMessage, mapLimit, writeFileAtomic } from '../util.ts';
 
 /** Most a single world's agent placements may spend in one run. */
@@ -88,8 +90,9 @@ export async function computePlacements(world: WorldHandle, opts: { newCalls: bo
       return { ...toThree(pose), iou: m.iou, contactGapM: m.contactGapM, tiltDeg: m.tiltDeg, heightM: m.heightM, ...(note ? { note } : {}) };
     };
     const placements: NonNullable<typeof so.placements> = {};
-    for (const [llm, method] of Object.entries(AGENT_PLACEMENTS) as [PlannerModel, PlacementMethod][]) {
-      if (!agents.includes(llm) && so.placements?.[method]) placements[method] = so.placements[method];
+    // Keep an existing result if this placement pass cannot replace it.
+    for (const method of Object.values(AGENT_PLACEMENTS)) {
+      if (so.placements?.[method]) placements[method] = so.placements[method];
     }
     // The compose fit as written (or as previously recorded, if the base transform already shows another method).
     const fitterBase = so.placements?.fitter ?? { position: so.position, quaternion: so.quaternion, scale: so.scale };
@@ -104,11 +107,11 @@ export async function computePlacements(world: WorldHandle, opts: { newCalls: bo
         try {
           const out = await agentPlacement(task, llm, { spend, fresh: false, effort: 'medium', ledger: false, partialOk: opts.newCalls });
           if (out.info.costUsd > 0) {
-            await world.addCost({ label: `${llm === 'muse-wonder-1.0' ? 'Muse Wonder' : 'Muse Spark'} placement agent: ${obj.name}`, usd: out.info.costUsd, provider: 'meta', estimated: false }, { model: llm });
+            await world.addCost({ label: `${MODEL_LABELS[llm]} placement agent: ${obj.name}`, usd: out.info.costUsd, provider: modelProvider(llm), estimated: false }, { model: llm });
           }
           if (out.placement) {
             const tools = [...new Set(out.steps.map((s) => s.tool))].join(', ') || 'no tools';
-            placements[method] = variant(c.pose(out.placement), `${out.submitted?.source ?? 'last try'} (${tools}): ${out.submitted?.rationale ?? out.info.error ?? ''}`.trim());
+            placements[method] = { ...variant(c.pose(out.placement), `${out.submitted?.source ?? 'last try'} (${tools}): ${out.submitted?.rationale ?? out.info.error ?? ''}`.trim()), agentRevision: PLACEMENT_AGENT_REVISION };
           } else if (out.info.error && !/budget/.test(out.info.error)) {
             notes.push(`${obj.name}: ${llm} agent failed (${out.info.error})`);
           }

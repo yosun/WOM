@@ -11,6 +11,7 @@ export {
   type Answer, type Case, type CaseSelection, type FinishOutcome, type Outcome, type ScoreContext, type ScoredAnswer, type SolveContext, type Subject, type Task, type TaskSpec,
 } from './node/define.ts';
 export { Ledger } from './node/ledger.ts';
+export { parDigest, parFileDigest, readParCourse, readParSubmission, verifyParFiles, type LoadedParCourse } from './node/par.ts';
 export { renderReport } from './node/report.ts';
 export { createMetricsRoutes, type RoutesOptions } from './node/routes.ts';
 export { BudgetExceeded, Spend, type CallResult, type CallSpec, type SpendOptions } from './node/spend.ts';

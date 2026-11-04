@@ -2,7 +2,7 @@
 
 WOM turns one photo into an explorable 3D world. The viewer opens on the original photo while the world loads behind it, framed by the camera WOM reconstructed. The keyhole of the WOM logo sits on the photo, small and sparkling. Tap it and it grows: dark inside, with a lit amber outline, while the world loads, then lit and open onto the live 3D scene once it is ready. Press *Enter the world* and the keyhole grows about its head, like an iris, past the photo's borders until the 3D scene fills the screen, which you walk through with W A S D. Worlds are chosen from a stack of slides (`#/space`), and a slide flies into the viewer without a jump; see [Slides](#slides-choosing-a-world-and-how-to-enter-it).
 
-WOM is also **World Observation Metrics**: the measurements of how faithfully a rebuilt world matches the photo it came from. They have a page of their own at `#/bench`; see [WOM: World Observation Metrics](#wom-world-observation-metrics).
+WOM is also **World Observation Metrics**: the measurements of how faithfully a rebuilt world matches the photo it came from. Every generation has a **WOMetrics** facts page at `/u/<handle>/<world>/build`; the cross-world benchmark dashboard remains at `#/bench`. See [WOM: World Observation Metrics](#wom-world-observation-metrics).
 
 WOM runs at https://wom.quest. Where things are written down:
 
@@ -11,6 +11,7 @@ WOM runs at https://wom.quest. Where things are written down:
 | This file | The pipeline, the viewer, accounts and credits, the benchmark, the file layout |
 | [`packages/metrics/README.md`](packages/metrics/README.md) | `@wom/metrics`, the benchmark framework and its page |
 | [`demo/object-split/README.md`](demo/object-split/README.md) | A static demo page of the head/body split, with every part it produced |
+| [`docs/wom-par/0.1.md`](docs/wom-par/0.1.md) | **WOM Par 0.1**: global Par score and frozen pilot course, updated `polish-v1` runtime placement, head/body splitting and build provenance |
 
 ## How a photo becomes a world
 
@@ -38,7 +39,7 @@ WOM runs at https://wom.quest. Where things are written down:
 
 ### Placement choices
 
-After compose, the *Placements* step stores up to four placements per object in `scene.json` (`objects[].placements`), each with its silhouette IoU, ground gap and tilt:
+After compose, the *Placements* step stores up to five placements per object in `scene.json` (`objects[].placements`), each with its silhouette IoU, ground gap and tilt:
 
 | Method | How the object is placed |
 | --- | --- |
@@ -46,12 +47,15 @@ After compose, the *Placements* step stores up to four placements per object in 
 | `grounded` | The fitter kept upright along gravity, then scaled about the camera so its base pivot rests on the ground plane. Scaling about the camera keeps the silhouette, so the object stops floating or sinking; its size then comes from the ground plane instead of the depth of its surface. |
 | `agent-spark` | Muse Spark 1.3 as an agent with the benchmark's tools (render and score a placement, run the fitter, read MoGe depth), then submitting a placement. |
 | `agent-wonder` | The same with Muse Wonder 1.0. |
+| `agent-sol` (experimental) | The same tools with GPT-6.1 Sol, through OpenAI's Responses API. |
+
+GPT-6.1 Sol is also an experimental *Scene director* choice in Settings. Set `OPENAI_API_KEY` in the server's environment (or `.env` locally); the legacy `OPENAI_KEY` alias still works. Sol is opt-in; the default planner and placement agents remain Muse. No key is sent to the browser. The [Par 0.1 experiment](docs/wom-par/experiments/2026-11-04-sol-muse.md) records the local fitter changes and live Muse code reviews tested against the frozen baseline. `npm run bench:par` repeats the saved-asset comparison without API calls; `npm run bench:par:review` requests bounded, cached Muse improvement proposals.
 
 Which agents run is chosen per world. New worlds take it from *Settings → Placement agents* on the home page (`placementAgents`, both by default). In the viewer, *Layers → Placement → Placement agents* changes it for that world. A chosen agent that has not placed the current objects can be run there and then, with the estimated cost shown. Chosen agents also run whenever the world's objects are rebuilt (`POST /api/worlds/<id>/agents` with `{"agents": [...], "run": true}` does the same). Agent calls go through the benchmark's call cache, so a world whose objects were already benchmarked gets the agent placements for free, and recomposing or switching the object model only reuses cached answers. A world build spends at most $3 on agents. A changed mask shifts the ground plane slightly, which changes the agents' inputs, so after a mask is redone every object's agents run again.
 
 The viewer lists every method with its mean IoU under *Layers → Placement*. *Use for this world* saves the selected one as `manifest.placementMethod` (`POST /api/worlds/<id>/placement` with `{"method": "grounded"}` does the same), and the world opens with it from then on.
 
-On the benchmarked objects the agents almost always ran the fitter and submitted its result, so their placements usually equal `grounded`. They differed where the agent overruled the fitter, as on the courtyard wellhead while its first mask was on the wrong object.
+The agents' shared `auto_fit` tool now compares the original grounded fit with a 32-round refinement that preserves fitted position and scale during angle trials, and returns the result with higher silhouette IoU. Copying that result into the final submission keeps its exact scored pose. Existing agent placements show *update available* until explicitly rerun; an unsuccessful update retains the existing placements, while a fresh compose uses only matching cached answers in cache-only mode. See [WOM Par 0.1's updated technique](docs/wom-par/0.1.md#updated-runtime-placement-technique) for the comparison guard, cache revision and measured limitations.
 
 ### Fixing an object's mask
 
@@ -226,7 +230,7 @@ A link to a shared world unfurls in a chat with the memory's title, a line from 
    - Drag to look around.
    - *Back to the memory* (P) flies back to the photo's viewpoint while the keyhole closes back in around the photo.
    - *Flag a problem* (O) records something that looks wrong here, with the exact camera and scene; see [Flagging problems](#flagging-problems-observe-to-fix).
-   - *Capture* (the camera button) keeps what the camera shows now as a bookmark of the moment: a picture of the view and exactly where the camera stood, saved as another way into this world that opens from exactly here. On a large screen the button sits in a corner; on a phone it sits at the bottom centre like a camera app. A flash and a small card confirm it. The card has the picture, a name you can type over right away ("View 3" until you do), an optional caption, *See in slides* (a new tab, on this capture) and *Undo*; it leaves by itself after about nine seconds. See [Slides](#slides-choosing-a-world-and-how-to-enter-it).
+   - *Capture* (the camera button) keeps what the camera shows now as a bookmark of the moment: a picture of the view and exactly where the camera stood, saved as another way into this world that opens from exactly here. On a large screen the button sits in a corner; on a phone it sits at the bottom centre like a camera app. A flash and a small card confirm it. The card has the picture, a name you can type over right away ("View 3" until you do), an expandable motion prompt and an *Action* button that generates a video from that exact image. It stays until dismissed, with *See in slides* (a new tab, on this capture) and *Undo*. See [Slides](#slides-choosing-a-world-and-how-to-enter-it).
    - *Layers* holds the Marble world (with a choice of splat resolution), the depth relief and the objects. *Layers → Movement* switches walking on and off and shows the colliders as wireframes (the world's in green, the objects' hulls in orange).
    - *Layers → Placement* switches every object between the fitter, the grounded fitter and the agents' placements (see [Placement choices](#placement-choices)). *Use for this world* keeps the selected one. *Placement agents* below it chooses which agents this world uses and runs a chosen one that has not placed the objects yet.
    - *Layers → Object models* chooses the 3D model each object shows and runs the [asset check](#asset-check).
@@ -255,7 +259,32 @@ The world's triangles are spread over tens of metres, while an object packs 140k
 
 ## WOM: World Observation Metrics
 
-In the app, WOM is *World of a Memory*: one photo rebuilt as a world you walk through. The measurements of how well that rebuild matches the photo are *World Observation Metrics*, and they have a page of their own at `#/bench`, linked from the home page. The page reads what is already on disk and never makes a paid call.
+In the app, WOM is *World of a Memory*: one photo rebuilt as a world you walk through. The measurements of how well that rebuild matches the photo are *World Observation Metrics*. The **WOMetrics** buttons in the gallery, slides and viewer open that generation's facts page at `/u/<handle>/<world>/build`, expanding the former Build Details page. The cross-world benchmark dashboard stays at `#/bench`. Both pages read saved evidence without making paid model calls.
+
+### WOMetrics: facts for every generation
+
+The generation page presents a nutrition-style label: placed versus planned objects, mean silhouette IoU with measurement coverage, clean-asset verdicts and unchecked counts, mean absolute ground gap, tilt, and the surrounding world's availability. It also shows a photo/reconstruction reveal slider, completed/skipped/failed stages, recorded wall time and spend, known 3D download size, per-object measurements, model ingredients, camera field of view against the photo's lens, and observation counts. The saved reconstruction image comes from compose; alternate placements and later alignment edits can differ, so the page links back into the live world.
+
+`GET /api/worlds/<id>/metrics` derives these facts from the current manifest and scene, including older worlds and generations that are queued, running, partial or failed. No backfill or extra evaluation run is needed. Missing evidence stays missing; a world with no separate objects has no object IoU score, and an unchecked asset is never treated as clean. Placement uses the scene's active method with the same per-object fitter fallback as the viewer. Ground gaps are averaged by absolute distance so floating and sinking cannot cancel. Individual stage measurements are separate from the complete-course WOMPar preference score below.
+
+**WOMetrics is the default tab**, including for unfinished generations. It shows the current
+**WOMPar 0.1 reference: Par 0**, the named course/track and actual ballot count, followed by
+generation facts. A generation without a full-course result stays **Not ranked**. **Build Details**
+is a separate owner-only tab for progress, masks, model generation, retry controls and the log.
+Explicit Refine links (or `?tab=build-details`) open that tab. Tab changes support keyboard
+navigation and survive reload; normal `/build` links open WOMetrics.
+
+Shared worlds expose the read-only WOMetrics tab. Spend and observation history remain owner-only;
+logs, camera upload metadata and refinement controls are not exposed through the facts endpoint.
+Facts refresh after pipeline events and every ten seconds while visible. The original `/build`
+links and old hash bookmarks continue to work. **Report JSON** exports the safe facts; **Contributor
+format** opens the versioned setup schema. Every contributed setup uses the same identity,
+agents/models, runner, adapter, frozen output and scoring envelope; see
+[Contributing a setup](docs/wometrics/contributing.md).
+
+Run `npm run test:wometrics` for the arithmetic, legacy/missing-data behavior and endpoint privacy checks.
+
+### Benchmark dashboard
 
 The benchmark and its page are a package of their own, [`@wom/metrics`](packages/metrics/README.md): a framework that does not care which model, agent or process gives the answers. Applications declare *tasks* (the cases, and how an answer is scored) and plug in *subjects* (whatever answers); the framework runs them, caps and caches the paid calls, books them to the ledger, stores the runs and serves the page. This app supplies what it measures (`server/src/bench/`) and two tabs only it can fill (`web/src/wom.ts`).
 
@@ -264,6 +293,7 @@ The benchmark and its page are a package of their own, [`@wom/metrics`](packages
 | Overview | What is the short version? | The other tabs: the headline numbers, what they say in plain words, every method's gain over the free baseline, and the hardest cases. |
 | Placement | Where does each object sit? | The [placement benchmark](#placement-benchmark): a leaderboard, a chart of what a model buys in cost or time, a case × method matrix, and every case with its overlays. |
 | Assets | Is anything from the photo baked into an object? | The [asset check](#asset-check): verdicts per 3D model next to how well that model's objects were placed, the agreement with the labels, and every asset. |
+| Global | Does a complete reconstruction beat WOMPar? | The [fixed-course global Par score](#global-wompar-score): frozen reference zero, verified evidence, actual ballots and complete-course ranking. |
 | Camera | Was the photo's camera read correctly? | Each depth model's field of view against the lens in EXIF, and against a phone's depth map. |
 | Observations | What did people see while walking around? | The [observations](#flagging-problems-observe-to-fix): counts by status, layer and category, and the latest. The *Observations* page (`#/observations`) has the frames and the buttons. |
 | Spend | What did it cost? | `data/ledger.jsonl`, through `GET /api/bench/spend`: by kind of work, provider, day and world. |
@@ -329,16 +359,29 @@ Layer ids are `world`, `relief` and `object:<object id>`. The server checks ever
 
 ## Slides: choosing a world and how to enter it
 
-`#/space` (*Browse as slides* on the home page) shows every built world as a glass slide in a row along a timeline of when each memory was made. Scroll, drag or press ← → to look through the row (Home and End jump to the ends). The slide in front steps out of the row and turns toward you with its keyhole showing: at an eighth of its full size, sparkling. Tap the keyhole (its button is a disc at least 56 px across, however small it rests) or press Enter: the rest of the row fades away while the slide turns to face you and grows into exactly the frame the viewer shows its picture in, and the keyhole grows with it, from its resting size to its full size by the time the slide lands. That keyhole is the one the world loads behind, so the viewer takes over from the slide with nothing jumping, and the loading sequence runs from there. The viewer's back arrow flies the slide home again. Slides have square corners. The keyhole's light is a function of the clock alone (`web/src/keyhole-light.ts`), so the one on the slide, the one on the slide's cover and the one in the viewer are the same drawing of the same moment, which is why nothing jumps when the viewer takes over.
+`#/space` (*Browse as slides* on the home page) shows memories as parallel image planes in a continuous temporal prism. Vertical scrolling or pinching contracts and expands the spacing smoothly between a close view and an overview of the finite collection; the bottom view control offers the same adjustment. Drag, scroll horizontally, or press ← → to move through time (Home and End jump to the ends). Click a plane, its small keyhole, or press Enter to pull it out along Z without changing its temporal X coordinate or orientation. The archive shrinks into the upper left while the selected image fills the center. Click the extracted image or keyhole, or press Enter again, to continue the existing keyhole flight and world-loading sequence. Escape or *Back to archive* puts the image back. The viewer's back arrow restores the extracted selection. Slides keep their aspect ratios and square corners. The keyhole's light remains a function of the clock alone (`web/src/keyhole-light.ts`), shared by the slide, its handoff cover, and the viewer.
 
-The camera does not move. The slide turns to face it and lands on the rectangle of the window that `web/src/frame.ts` also gives the viewer, which is what keeps the two pages aligned.
+The slide's actions stay at the bottom: *Pull out* selects a memory and becomes *Enter world* once selected; *Film* opens the image's video editor, *Refine* opens the world's build and object controls, and the small *WOMetrics* button opens this generation's facts page. The more menu offers the world's other ways in and, for a saved view, removal. The corner card with the selected slide's title, date, and caption appears only with `?debug`.
+
+During the world-entry flight, the preview camera holds still. The slide lands on the rectangle of the window that `web/src/frame.ts` also gives the viewer, which keeps the two pages aligned.
 
 **A slide is a picture and the camera that took it.** The camera is the slide's *entry*: `position`, `quaternion` (x, y, z, w), `fovY` (vertical field of view in degrees), `aspect` (width / height) and optionally `focus`, the distance to what the middle of the picture shows (the portal camera swings around that point). The viewer opens the world from the entry, so the world looks like the picture when you arrive.
 
 - Every built world has a **photo slide** (id `photo`): the photo, entered from the camera that took it, which is the origin of the scene. It is derived from `scene.json` and never stored.
 - **View slides** come from inside a world. The camera button in the viewer saves exactly what the camera shows, without colliders or the edit gizmo (a JPEG of at most 2048 px), with the camera as its entry. The camera is read in the same moment the picture is drawn, so walking or flying while pressing it does not move the saved position away from the picture. A view made in a Marble world remembers the world's calibration. When compose later calibrates the world differently, the entry moves with it, so the view still matches its picture.
-- A view's **name and caption** belong to its bookmark. The name starts as "View 1", "View 2", … and can be changed in the capture card. The card also accepts an optional caption of up to 2,000 characters, with line breaks, and saves edits as you leave each field. The name and caption are returned with the slide and the caption appears in the slide-space details.
+- A view's **name and motion prompt** belong to its bookmark. The name starts as "View 1", "View 2", … and can be changed in the capture card. Names can contain up to 120 Unicode characters. The expandable prompt saves as the capture's caption when you leave the field; drafts also stay in this browser. The name and caption are returned with the slide and the caption appears in the slide-space details.
 - Views are stored with the world: `slides.json` (`{"slides": [...]}`), `slides/<id>.jpg` and `slides/<id>-thumb.jpg` (at most 640 px).
+
+**Animate an image.** Capture a view inside a world and describe how it should move, then press *Action*. You can also open *Film* on any saved slide or *Animate* from the viewer to revisit its prompt and videos, including the original photo. WOM sends the saved image as the first frame and the prompt to AI3D's `h3-max-image-to-video` model (5 seconds, 768P). As specified in [AI3D's model guide](https://api.ai3d.dev/v2/models/h3-max-image-to-video/llm.txt), prompts are limited to 16,000 Unicode characters and the complete model input to 16 KiB; non-ASCII characters and JSON escapes can use that input space sooner. The editor and server both check these limits using AI3D's JSON encoding. `AI3D_API_KEY` stays on the server; the browser only calls WOM. Generation history survives reloads and server restarts, and each action creates a separate take even with the same prompt.
+
+The bottom status bar shows queued, generating and saving jobs alongside completed video buttons. On phones it becomes a dismissible floating bubble above Capture; dismissal keeps jobs running. Open a completed take and press the play overlay on the source preview to play it in place. Multiple takes appear in a horizontal strip, using each video's **middle frame**, never the shared first frame. The server uses `ffmpeg` and `ffprobe` from `PATH` for these thumbnails; the browser extracts the midpoint if those tools are unavailable. Source snapshots, MP4s and thumbnails live under the world's `videos/` directory; private job records are in `videos.json`. Shared-world visitors can play completed videos; only the owner can generate.
+
+```text
+GET  /api/worlds/<id>/videos    generation history (safe public fields only)
+POST /api/worlds/<id>/videos    {"slideId":"photo or capture id","prompt":"…","title":"…","requestId":"unique client token"}
+```
+
+A repeated request ID reuses the original job; a changed body with that ID is refused. Unknown provider submissions are kept for reconciliation without creating another paid job. Run the server checks with `npm run test:videos` and the mocked desktop/mobile browser flow with `npm run slides:video` (the same Playwright setup as the slide checks below). These checks do not buy a video.
 
 **Sub spaces.** The stack opens on any list of slides. The app has three. Each takes `?slide=<world>.<slide>` for the slide to start on (default: the newest).
 
@@ -367,7 +410,7 @@ curl -F 'record={"entry":{"position":[0,0,-0.5],"quaternion":[0,0.208,0,0.978],"
      -F 'image=@view.jpg' http://localhost:5173/api/worlds/<id>/slides
 ```
 
-`entry` uses three.js camera conventions (the camera looks down its −Z axis) in the scene's own units. `title` and `caption` are optional (the default title is "View 1", "View 2", …). Captions can be up to 2,000 characters and can contain line breaks. The server checks everything before it writes anything, so a refused slide leaves nothing on disk. It answers 400 with `{ "error": … }` for a malformed record or an unreadable picture; for a picture that is not a JPEG, PNG or WebP from 64 to 8192 px; for a `fovY` outside 5–150 or an `aspect` outside 0.2–5; and for a picture whose shape is more than 2% off `entry.aspect`. It answers 413 above 16 MB, and 409 when the world has no scene yet or already holds 200 views.
+`entry` uses three.js camera conventions (the camera looks down its −Z axis) in the scene's own units. `title` and `caption` are optional (the default title is "View 1", "View 2", …). Titles are limited to 120 characters; captions can be up to 16,000 characters and can contain line breaks. The server checks everything before it writes anything, so a refused slide leaves nothing on disk. It answers 400 with `{ "error": … }` for a malformed record or an unreadable picture; for a picture that is not a JPEG, PNG or WebP from 64 to 8192 px; for a `fovY` outside 5–150 or an `aspect` outside 0.2–5; and for a picture whose shape is more than 2% off `entry.aspect`. It answers 413 for an overlong title or an image above 16 MB, and 409 when the world has no scene yet or already holds 200 views.
 
 **For agents and scripts.** With `?debug` in the address, the viewer page offers `window.__wom.viewer` (typed as `ViewerApi` in `web/src/observe.ts`) and the space pages offer `window.__wom.space` (typed as `SpaceApi` in `web/src/slides/space.ts`). Each is set when its page opens. Moving to another page by changing the address keeps the page, so the one you left stays there, stale.
 
@@ -388,13 +431,18 @@ const s = window.__wom.space;
 s.keys();                        // ['<world>.photo', '<world>.<slide>', …] in the order shown
 s.select('<world>.photo');       // bring one to the front (only while the row is at rest)
 s.state();                       // { mode: 'browse', current, key, count, … }
-s.play();                        // fly the slide in front into its world
+s.zoom(1);                       // contract into overview; 0 returns to the close view
+s.extract('<world>.photo');       // pull a plane out along Z without entering its world
+s.dismiss();                     // return the extracted plane to the archive
+s.play();                        // pull out the focused image; call again once state().extraction === 1 to enter
 s.flight();                      // while a slide flies: { u, dir, box, rect }; otherwise null
 ```
 
 A change of address keeps the page, so after moving to another space wait for its title before reading `window.__wom.space`: it is replaced when the new space mounts.
 
 **Checks.** Four scripts drive headless Chromium over the real app and API. `npm run slides:e2e -- [world id] [WxH] [tag]` saves a view in a world, finds it in the world's space, plays it (the flight must land on the viewer's frame to a fraction of a pixel, and the world seen from the saved entry must look like the slide's picture), comes back and removes the view again. It writes one slide and removes it, even when a check fails. `npm run slides:input` covers the wheel, drag, click, Esc and reduced motion, and writes nothing. `npm run slides:seam -- [slide key] [WxH] [tag]` plays a slide with a slow network and reports how much the screen changes at each step of the hand-off. `npm run slides:visual -- [WxH] [tag]` shows the row with 26 made-up slides to judge the layout. Playwright is not a dependency of WOM: run `npm i -D playwright-core`, or set `PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core`. `BASE` is where the app runs (default `http://localhost:5173`, what `npm run dev` serves; the API is reached through it). Screenshots go to `data/checks/slides/<tag>`, and a failed check sets the exit code. The scripts share `scripts/slides/browser.mjs`.
+
+Two additional fixture checks import the production component through Vite without an API or saved worlds: `node scripts/slides/prism.mjs [tag]` checks parallel planes, chronological traversal, extraction, and handoffs; `node scripts/slides/spatial.mjs [tag]` checks smooth zoom, full-collection overview, native two-touch pinch, selection/dismissal, resize, and mobile/reduced-motion entry. Their screenshots use the same output folder and browser setup.
 
 **Before running anything against this data:**
 
@@ -473,6 +521,35 @@ npm run bench:patrol -- --cached-only --no-record                               
 Options: `--worlds`, `--models`, `--max-views` (default 20), `--effort`, `--max-usd`, `--concurrency`, `--fresh`, `--cached-only`, `--no-record` (do not file findings as observations), `--record-cached`, `--base` (where the app runs). It drives a real Chromium: set `PLAYWRIGHT_CORE` to a `playwright-core/index.mjs` if it is not installed here, and have the app running.
 
 Keys: `MUSE_API_KEY`, `OPENAI_KEY` (in `.env.local`) and, for Gemini, either `GEMINI_API_KEY` or a verified Google Cloud project in `.kiro/gcp-project.json` (Vertex AI through the local `gcloud` login; the project is never taken from gcloud's global setting). That file is per machine and not in git: copy `.kiro/gcp-project.example.json` and fill in your own `projectId`. The key route works anywhere, AWS included.
+
+## Global WOMPar score
+
+**WOMPar 0.1 defines par = 0; negative beats it.** WOMetrics' Global task compares complete
+worlds against frozen reference outputs under identical viewing conditions. It accepts any
+renderable reconstruction method. With candidate preference `p` (ties count half), the score
+is **`100 × (1 − 2p)`**, from −100 to +100. A score of −20 means 60% preference against the
+reference, not 20% better geometric accuracy.
+
+The course freezes source photos, world bytes, camera paths, render conditions, rubric and
+judging protocol by hash. Average by judge, generation trial, unique photo and fixed category
+weight; a partial course cannot rank. Human ballots and provisional model panels have separate
+tracks. Adding a competitor cannot change earlier scores. Placement IoU, asset checks, patrol
+Intact, cost and latency remain diagnostics alongside the global score.
+
+```sh
+npm run test:par
+npm run bench:global
+npm run bench:global -- --template /tmp/my-method.json
+npm run bench:global -- --submissions /path/to/finished-submission.json
+```
+
+These commands verify frozen files and import real ballots, without making model calls. The
+initial [four-photo pilot](docs/wom-par/0.1.md#initial-frozen-course-wompar-01-pilot) has a
+reference score of **0 by identity, with zero human ballots**. Saved configurations differ;
+this pilot is a development sample, not a population validation or a measured challenger win.
+Full private assets live under the ignored local data directory. A missing reference fails
+explicitly. See the [global protocol](docs/wom-par/protocols/global-v1.md) for evidence schemas,
+failure/coverage rules, uncertainty and reproduction.
 
 ## Running on a server
 

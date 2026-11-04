@@ -1,7 +1,10 @@
 import { promptSignIn } from './auth.ts';
+import type { WorldMetrics } from '../../server/src/wometrics.ts';
+import type { VideoGeneration } from '../../server/src/types.ts';
 import type { AppliedFix, AssetCheck, AssetFinding, AssetVerdict, FixSuggestion, FixSuggestions, LayoutOverride, ObservationCreated, ObservationIssue, ObservationIssuePage, ObservationRecord, ObservationStatus, ObservationSummary, PlacementMethod, SceneDoc, SlideDoc, SlideEntry, WorldManifest, WorldOptions } from '../../server/src/types.ts';
 
 export type { AppliedFix, AssetCheck, AssetFinding, AssetVerdict, FixSuggestion, FixSuggestions, LayoutOverride, ObservationCreated, ObservationIssue, ObservationIssuePage, ObservationRecord, ObservationStatus, ObservationSummary, PlacementMethod, SceneDoc, SlideDoc, SlideEntry, WorldManifest, WorldOptions };
+export type { VideoGeneration };
 
 /** An observation with the title of its world, as listed across worlds. */
 export type ObservationListItem = ObservationRecord & { worldTitle: string };
@@ -70,6 +73,10 @@ export const api = {
   list: () => fetch('/api/worlds').then((r) => json<WorldSummary[]>(r)),
   get: (id: string) => fetch(`/api/worlds/${id}`).then((r) => json<{ manifest: WorldManifest; log: string[]; running: boolean; access: { handle: string | null; visibility: 'private' | 'link'; canEdit: boolean } }>(r)),
   scene: (id: string) => fetch(`/api/worlds/${id}/scene`).then((r) => json<{ scene: SceneDoc; layout: LayoutOverride[] }>(r)),
+  metrics: (id: string) => fetch(`/api/worlds/${id}/metrics`).then((r) => json<WorldMetrics>(r)).then((report) => {
+    if (!report || report.schema !== 'wometrics/1') throw new Error('Restart the API server to load the new WOMetrics endpoint.');
+    return report;
+  }),
   /** Owner only: 'link' lets anyone with the link look; 'private' lets only the owner. */
   setVisibility: (id: string, visibility: 'private' | 'link') =>
     fetch(`/api/worlds/${id}/visibility`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visibility }) }).then((r) => json<{ visibility: 'private' | 'link' }>(r, true)),
@@ -149,6 +156,11 @@ export const api = {
   slides: () => fetch('/api/slides').then((r) => json<SlideDoc[]>(r)),
   /** One world's slides: its photo first, then the views saved inside it. */
   worldSlides: (id: string) => fetch(`/api/worlds/${id}/slides`).then((r) => json<SlideDoc[]>(r)),
+  /** Video jobs and completed clips made from this world's image planes. */
+  videos: (id: string) => fetch(`/api/worlds/${id}/videos`).then((r) => json<VideoGeneration[]>(r)),
+  /** Start one video from the source slide's full image. Request IDs make uncertain submissions safe to retry. */
+  generateVideo: (id: string, input: { slideId: string; prompt: string; title?: string; requestId: string }) =>
+    post<VideoGeneration>(`/api/worlds/${id}/videos`, input),
   /** Save a view as a slide: `record` ({ entry, title?, caption? }) and `image` (exactly what the entry's camera saw). */
   createSlide: (id: string, form: FormData) => fetch(`/api/worlds/${id}/slides`, { method: 'POST', body: form }).then((r) => json<SlideDoc>(r, true)),
   /** Update a view slide's name and/or caption. Empty captions clear the saved caption. */

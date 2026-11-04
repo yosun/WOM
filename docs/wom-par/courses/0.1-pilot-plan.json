@@ -1,0 +1,18 @@
+{
+  "id": "wompar-0.1-pilot",
+  "label": "WOMPar 0.1 · four-photo local pilot",
+  "reference": {
+    "id": "wompar-0.1",
+    "label": "WOMPar 0.1 · frozen saved-output pilot",
+    "revision": "0.1 saved worlds, active fitter, snapshot 2026-11-04; see per-world artifact provenance for configuration deviations"
+  },
+  "conditions": "docs/wom-par/protocols/capture-v1.json",
+  "rubric": "docs/wom-par/protocols/global-v1.md",
+  "patrol": "data/bench/patrol/20261104-122929/results.json",
+  "scenes": [
+    { "id": "sunny-garden", "world": "mvxixlbz34cbfb22", "note": "Saved IDOL/Marble/MoGe-3 world. Active fitter. Older options omit explicit placement-agent and splitPeople defaults." },
+    { "id": "cloister", "world": "mvxjtywhaeb1ff10", "note": "Saved IDOL/MoGe-3 world with worldModel:none and maxObjects:2; this is a deliberate recorded deviation from the default recipe." },
+    { "id": "beauty-split", "world": "mw16xplr29532e14", "note": "Saved manual head/body split case with layout overrides and placementAgents:[]; not a fresh default-recipe build. The whole-person copy of the same photo is excluded." },
+    { "id": "poolside", "world": "mw1u8wfg5b232a59", "note": "Saved IDOL/Marble/MoGe-3 world, one generated object. Active fitter. Not a fresh amended-agent evaluation." }
+  ]
+}

@@ -16,10 +16,11 @@ your app ──defines──▶  Task      the cases, and how an answer is score
         report.md
 ```
 
-It is a workspace package of this repository (`npm install` links it as `@wom/metrics`). Nothing in it knows about photos, masks, Muse or MoGe: the WOM app plugs those in (`server/src/bench/`), and a different application can do the same with its own tasks. (A world is the one unit it knows by name: the spend report can group paid calls by the world they were about.)
+It is a workspace package of this repository (`npm install` links it as `@wom/metrics`). The runner does not know about masks, Muse or MoGe: the WOM app plugs those in, and a different application can do the same with its own tasks. The package also exports a representation-independent global Par protocol for whole-world comparisons on fixed courses of photographs.
 
 - [A benchmark in one file](#a-benchmark-in-one-file)
 - [The model](#the-model): task, case, subject, method, answer, run
+- [Global Par scoring](#global-par-scoring): frozen references, full coverage and immutable scores
 - [Node API](#node-api): `createBenchmark`, `defineTask`, `defineSubject`, `Spend`, `Ledger`
 - [HTTP routes](#http-routes)
 - [Dashboard](#dashboard): `mountMetrics`, adding tabs
@@ -82,6 +83,48 @@ A run covers every case with every subject. All subjects answer a case at once; 
 
 **Methods are compared on the cases they share.** A model costs money, so it is usually run on fewer cases than a free solver. A mean over "all the cases a method ran" then compares different cases. The summary reports each method's mean and `pairedStat` reports its gain over the baseline on the cases both ran, with how many it won, tied and lost (within `task.tie`; it counts as a gain above `task.gain`).
 
+## Global Par scoring
+
+`@wom/metrics/core` exports `ParCourse`, `ParSubmission`, `ParScore`, `scorePar`,
+`parReferenceSubmission`, `rankPar`, `assertParCourse` and `PAR_PROTOCOL` (`wom-par-v1`).
+The Node entry additionally exports `readParCourse`, `readParSubmission`, `parDigest`,
+`parFileDigest` and `verifyParFiles` for recursive content-hash and provenance checks.
+
+```ts
+import { readParCourse, readParSubmission, parReferenceSubmission, scorePar, rankPar } from '@wom/metrics';
+
+const frozen = await readParCourse('course.json', '/private/frozen-artifact-root');
+const reference = scorePar(frozen.course, frozen.sha256, parReferenceSubmission(frozen.course, frozen.sha256));
+const entry = await readParSubmission('/submission/entry.json', frozen);
+const result = scorePar(frozen.course, frozen.sha256, entry);
+const ranked = rankPar([reference, result]);
+```
+
+The score is `100 × (1 − 2p)`, where `p` is the candidate's preference against the fixed
+reference, counting ties as half a win. **0 is par; negative is better; range −100 to +100.**
+It averages judges, generation trials, unique source photographs and fixed category weights
+in order. Exact reference replays get zero with no invented self-comparison ballots. Missing
+evidence or incomplete panels leave a score null; evidenced generation/render failures lose
+against success. Human and model judging tracks cannot mix. Model judges must see both orders.
+
+Scores depend on one immutable course digest, not a jointly fitted entrant roster, so new
+entrants cannot move existing scores. Convenience-sample pilots are descriptive only; eligible
+independent-scene courses can report conservative photo-level bounds. No claim is made that a
+single number is a universal ranking across unrelated tasks or datasets.
+
+Pure `scorePar` validates structure and arithmetic; it does not read bytes, authenticate raters
+or certify that a renderer complied. Use the Node loaders before importing external evidence,
+and audit capture/judging compliance. See the [full protocol](../../docs/wom-par/protocols/global-v1.md)
+and [WOM Global task](../../server/src/bench/global.ts). That task deliberately makes the whole
+course **one case** so the generic finite-value mean cannot reward selective scene coverage.
+
+For new agentic contributions, include the standard `AgentSetup` descriptor as `submission.setup`.
+`assertAgentSetup` checks its schema, runner/adapter versions, models, agent/tool references and
+environment variable names. Its identity/revision must match the scored method; the Node importer
+also verifies a declared configuration file's hash. Runner metadata is recorded, never executed
+by the scoring command. See the [schema](schema/agent-setup-v1.json) and
+[contributor guide](../../docs/wometrics/contributing.md).
+
 ## Node API
 
 ```ts
@@ -115,6 +158,9 @@ import { createBenchmark, createMetricsRoutes, defineSubject, defineTask, Ledger
 | `upgrade(raw, { id, dir })` | Optional. Reads a run stored before format 2. Returns a `RunFile`, or `null`. Nothing on disk is changed. |
 
 A **metric** is `{ id, label, better: 'higher' | 'lower', unit?, format?: 'percent', digits?, range?, thresholds?: { good, fair }, aggregate?: 'mean' | 'median' | 'meanAbs' | 'medianAbs', advanced?, description? }`. `aggregate` says how a method's cases add up to one number; the default is the mean of the finite values. `advanced` metrics sit behind a toggle in the dashboard.
+
+A case **artifact** is declared as `{ id, label, kind?: 'image' | 'file' }`. The default embeds
+an image; `kind: 'file'` makes reports and the dashboard link documents or raw JSON directly.
 
 **Annotations** are `Record<key, { exclude?, note?, expected?, revision? }>`. A case looks its notes up under its `noteKeys` (default: its `id`), the first key that exists wins, and a note with a `revision` applies only to that revision of what the case is about. `exclude` keeps a case out of the summary (it stays in the details); `expected` is what a person said the verdict should be.
 

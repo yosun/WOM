@@ -263,7 +263,7 @@ export const wom: MetricsUiHost = {
   lede: 'Scores each rebuilt world against the photo it came from: where its objects sit, whether anything foreign is baked into them, how well the camera was read, what people flagged while walking around, and what it all cost.',
   tabs: [cameraTab, observationsTab],
   caseLinks: (_task, c) => (c.dims.world
-    ? [{ label: 'Open in the viewer', href: worldHref(c.dims.world) }, { label: 'Masks and models', href: worldHref(c.dims.world, { build: true }) }]
+    ? [{ label: 'Open in the viewer', href: worldHref(c.dims.world) }, { label: 'WOMetrics · Generation facts', href: worldHref(c.dims.world, { build: true }) }]
     : []),
 };
 

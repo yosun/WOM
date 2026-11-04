@@ -44,6 +44,17 @@ export interface FitInputs {
   upright?: Vec3;
   /** Search yaw only within ±window degrees of center (upright yaw convention when `upright` is set); window 0 fixes it. */
   yawRange?: { center: number; window: number };
+  /** Number of coarse candidates to refine independently (bounded to 1–6). */
+  refineStarts?: number;
+  /** Use overlap directly rather than mask-normalized pixel error. */
+  silhouetteLoss?: 'pixel-error' | 'iou';
+  /** Long side of the fitting raster, in pixels (220 reproduces WOM Par 0.1). */
+  fitResolution?: number;
+  /** Experimental depth filters proposed by the two Muse code reviews. */
+  depthFilter?: 'spark' | 'wonder';
+  initialDepth?: 'upper-quartile';
+  refineRounds?: number;
+  preserveTranslation?: boolean;
   log?: (msg: string) => void;
 }
 
@@ -111,7 +122,7 @@ export function fitObject(inp: FitInputs): FitResult | null {
   const pad = 0.45;
   const win: RenderWindow = { x0: box.x0 - bw * pad, y0: box.y0 - bh * pad, x1: box.x1 + bw * pad, y1: box.y1 + bh * pad };
   const longSide = Math.max(win.x1 - win.x0, win.y1 - win.y0);
-  const res = 220 / longSide;
+  const res = Math.max(220, Math.min(640, inp.fitResolution ?? 220)) / longSide;
   const W = Math.max(24, Math.round((win.x1 - win.x0) * res));
   const H = Math.max(24, Math.round((win.y1 - win.y0) * res));
   const pxW = (win.x1 - win.x0) / W, pxH = (win.y1 - win.y0) / H;
@@ -159,7 +170,11 @@ export function fitObject(inp: FitInputs): FitResult | null {
   if (zs.length < 5) for (let p = 0; p < W * H; p++) if (mWin[p] && vWin[p]) zs.push(zWin[p]);
   if (zs.length === 0) return null;
   zs.sort((a, b2) => a - b2);
-  const z0 = zs[Math.floor(zs.length * 0.5)];
+  let z0 = zs[Math.floor(zs.length * 0.5)];
+  if (inp.initialDepth === 'upper-quartile') {
+    const upper = zs[Math.floor(zs.length * 0.75)];
+    if (z0 < 0.85 * upper) z0 = upper;
+  }
 
   let evaluations = 0;
   const rayAt = (u: number, v: number): Vec3 => normalize([(u - k.cx) / k.fx, (v - k.cy) / k.fy, 1]);
@@ -210,7 +225,7 @@ export function fitObject(inp: FitInputs): FitResult | null {
       }
     }
     const iou = union ? inter / union : 0;
-    let loss = (miss + extra) / maskPixels;
+    let loss = inp.silhouetteLoss === 'iou' ? 1 - iou : (miss + extra) / maskPixels;
     if (colorN > 0) loss += 0.35 * (colorErr / colorN / 765);
     if (inp.alignImage) loss += 0.04 * (p.yaw / 90) ** 2 + 0.04 * (p.pitch / 45) ** 2;
     return { loss, iou, render: r };
@@ -261,56 +276,87 @@ export function fitObject(inp: FitInputs): FitResult | null {
     for (let dYaw = -yr.window; dYaw <= yr.window + 1e-9; dYaw += stepDeg) yaws.push(yr.center + dYaw);
   }
   const pitches = inp.upright || inp.alignImage ? [0] : [-20, 0, 20];
+  const starts = Math.max(1, Math.min(6, Math.round(inp.refineStarts ?? 1) || 1));
   let best: { p: Params; e: Eval } | null = null;
+  const seeds: { p: Params; e: Eval }[] = [];
   for (const yaw of yaws) {
     for (const pitch of pitches) {
       const p = snapToBox({ ...start, yaw, pitch });
       const e = evaluate(p, true);
+      if (starts > 1) seeds.push({ p, e });
       if (!best || e.loss < best.e.loss) best = { p, e };
     }
   }
   if (!best) return null;
 
-  // Local refinement by coordinate descent.
-  const steps: Record<keyof Params, number> = { yaw: 10, pitch: 6, logS: 0.06, u: bw * 0.03, v: bh * 0.03, z: 0 };
-  const keys: (keyof Params)[] = (inp.upright ? ['logS', 'u', 'v', 'yaw'] : ['logS', 'u', 'v', 'yaw', 'pitch']).filter((key) => !(key === 'yaw' && yr?.window === 0)) as (keyof Params)[];
-  for (let round = 0; round < 14; round++) {
-    let improved = false;
-    for (const key of keys) {
-      for (const dir of [1, -1]) {
-        let cand: Params = { ...best.p, [key]: best.p[key] + dir * steps[key] };
-        if (yr && key === 'yaw' && Math.abs(cand.yaw - yr.center) > yr.window + 10) continue;
-        // Turning the model changes its silhouette size and offset; re-fit those before judging the turn.
-        if (key === 'yaw' || key === 'pitch') cand = snapToBox(cand);
-        const e = evaluate(cand, true);
-        if (e.loss < best.e.loss - 1e-5) {
-          best = { p: cand, e };
-          improved = true;
-          break;
+  // Default settings reproduce Par 0.1. Candidate settings are compared by scripts/bench-par.ts.
+  const refine = (seed: { p: Params; e: Eval }) => {
+    let local = seed;
+    const steps: Record<keyof Params, number> = { yaw: 10, pitch: 6, logS: 0.06, u: bw * 0.03, v: bh * 0.03, z: 0 };
+    const keys: (keyof Params)[] = (inp.upright ? ['logS', 'u', 'v', 'yaw'] : ['logS', 'u', 'v', 'yaw', 'pitch']).filter((key) => !(key === 'yaw' && yr?.window === 0)) as (keyof Params)[];
+    for (let round = 0; round < Math.max(14, Math.min(48, inp.refineRounds ?? 14)); round++) {
+      let improved = false;
+      for (const key of keys) {
+        for (const dir of [1, -1]) {
+          let cand: Params = { ...local.p, [key]: local.p[key] + dir * steps[key] };
+          if (yr && key === 'yaw' && Math.abs(cand.yaw - yr.center) > yr.window + 10) continue;
+          // A small turn need not discard the image position and scale already refined for this pose.
+          let e: Eval;
+          if (key === 'yaw' || key === 'pitch') {
+            const snapped = snapToBox(cand);
+            const snappedEval = evaluate(snapped, true);
+            const retainedEval = inp.preserveTranslation ? evaluate(cand, true) : null;
+            if (retainedEval && retainedEval.loss < snappedEval.loss) e = retainedEval;
+            else { cand = snapped; e = snappedEval; }
+          } else e = evaluate(cand, true);
+          if (e.loss < local.e.loss - 1e-5) {
+            local = { p: cand, e };
+            improved = true;
+            break;
+          }
         }
       }
+      if (!improved) {
+        for (const key of keys) steps[key] *= 0.5;
+        if (steps.logS < 0.004) break;
+      }
     }
-    if (!improved) {
-      for (const key of keys) steps[key] *= 0.5;
-      if (steps.logS < 0.004) break;
-    }
+    return local;
+  };
+  best = refine(best);
+  for (const seed of seeds.sort((a, b) => a.e.loss - b.e.loss).slice(1, starts)) {
+    const candidate = refine(seed);
+    if (candidate.e.loss < best.e.loss) best = candidate;
   }
 
   // Depth: match the mesh's visible surface to MoGe's metric depth.
   const fitDepth = (p: Params): { p: Params; k: number } => {
     const r = renderShape(shape, poseOf(p), k, win, W, H);
     evaluations++;
-    const ratios: number[] = [];
+    let ratios: number[] = [];
     for (let y = 1; y < H - 1; y++) {
       for (let x = 1; x < W - 1; x++) {
         const i = y * W + x;
         if (!(r.invDepth[i] > 0) || !vWin[i] || !mWin[i]) continue;
         if (!(mWin[i - 1] && mWin[i + 1] && mWin[i - W] && mWin[i + W])) continue;
+        if (inp.depthFilter) {
+          const neighbours = [i - 1, i + 1, i - W, i + W];
+          if (!neighbours.every((j) => r.invDepth[j] > 0)) continue;
+          if (inp.depthFilter === 'spark') {
+            const zr = 1 / r.invDepth[i];
+            if (!(zWin[i] > 0.9 * zr && zWin[i] < 1.5 * zr)) continue;
+          } else if (!neighbours.every((j) => Math.abs(r.invDepth[j] / r.invDepth[i] - 1) < 0.05)) continue;
+        }
         ratios.push(zWin[i] * r.invDepth[i]);
       }
     }
     if (ratios.length < 5) return { p, k: 1 };
     ratios.sort((a, c) => a - c);
+    if (inp.depthFilter === 'wonder') {
+      const m = ratios[Math.floor(ratios.length / 2)];
+      const trimmed = ratios.filter((r) => r >= 0.85 * m && r <= 1.15 * m);
+      if (trimmed.length >= 5) ratios = trimmed;
+    }
     const kk = Math.min(4, Math.max(0.25, ratios[Math.floor(ratios.length / 2)]));
     return { p: { ...p, z: p.z * kk, logS: p.logS + Math.log(kk) }, k: kk };
   };

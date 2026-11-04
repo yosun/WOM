@@ -9,7 +9,8 @@ import { bodyLimit } from 'hono/body-limit';
 import { streamSSE } from 'hono/streaming';
 import sharp from 'sharp';
 import { accountBalanceUsd } from './clients/ai3d.ts';
-import { DEFAULT_OPTIONS, HOST, PORT, PUBLIC_ORIGIN, SIGN_IN_REQUIRED, STORE, WEB_DIST, WORLD_CREDITS, keysConfigured, normalizeOptions, retryOptions } from './config.ts';
+import { openAiConfigured } from './clients/openai.ts';
+import { DEFAULT_OPTIONS, HOST, PORT, PUBLIC_ORIGIN, ROOT, SIGN_IN_REQUIRED, STORE, WEB_DIST, WORLD_CREDITS, keysConfigured, normalizeOptions, retryOptions } from './config.ts';
 import { balanceOf, CreditsError, holdForRetry, holdForWorld, mintPromo, redeemPromo, refundFailedWorlds, refundWorld } from './credits.ts';
 import { handleWebhook, packsFor, STRIPE_TEST_MODE } from './stripe.ts';
 import { guard, identify, levelOf, publicManifest, type AppEnv } from './access.ts';
@@ -17,6 +18,7 @@ import { authConfig, clerkConfigured } from './auth.ts';
 import { appendLedger, ledgerExists } from './ledger.ts';
 import { ensureAssetRegistry } from './pipeline/assets.ts';
 import { applyPlacement } from './pipeline/placements.ts';
+import { placementAgentNeedsRun } from './placement.ts';
 import { metricsRoutes } from './bench/suite.ts';
 import { applyFix, suggestFixes } from './observe/fixes.ts';
 import { createObservation, ensureThumbnail, getObservation, isObservationId, isThumbName, listIssues, listObservations, observationFilePath, ObservationError, resolveIssue, updateObservation, updateObservations } from './observe/store.ts';
@@ -28,10 +30,13 @@ import { applyDraftMask, MaskError, parseMaskPrompt, previewMask, restoreMask } 
 import { generateAssets, prepareRetry, isRunning, recompose, runPlacementAgents, startTask, startWorld, switchObjectAsset, switchObjectModel } from './pipeline/run.ts';
 import { allSlides, createSlide, deleteSlide, updateSlide, SlideError, worldSlides } from './slides.ts';
 import { createWorld, deleteWorld, forgetAccess, getWorld, isWorldId, listWorlds, listWorldsFor, setVisibility, worldAccess, worldEvents, worldFile } from './store.ts';
-import { AGENT_PLACEMENTS, CHECK_PRICE_USD, OBSERVATION_STATUSES, PLACEMENT_METHODS, type ObservationStatus, type CameraInfo, type LayoutOverride, type MeshModel, type PlacementMethod, type PlannerModel, type SceneDoc, type WorldEvent, type WorldManifest, type WorldOptions } from './types.ts';
+import { AGENT_PLACEMENTS, CHECK_PRICE_USD, OBSERVATION_STATUSES, PLACEMENT_METHODS, PLANNER_MODELS, type ObservationStatus, type CameraInfo, type LayoutOverride, type MeshModel, type PlacementMethod, type PlannerModel, type SceneDoc, type WorldEvent, type WorldManifest, type WorldOptions } from './types.ts';
 import { withPreview } from './share.ts';
 import { HandleError, setHandle } from './users.ts';
 import { errorMessage, writeFileAtomic } from './util.ts';
+import { createVideoGeneration, listVideoGenerations, resumeVideoGenerations, VideoError } from './videos.ts';
+import { worldMetrics } from './wometrics.ts';
+import { currentParStatus } from './bench/par-summary.ts';
 
 /** Photos are far smaller; the limit leaves room for short videos such as a Live Photo's .MOV. */
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -41,6 +46,9 @@ const MIME: Record<string, string> = {
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
   '.webp': 'image/webp',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
   '.glb': 'model/gltf-binary',
   '.spz': 'application/octet-stream',
   '.json': 'application/json',
@@ -70,6 +78,10 @@ for (const prefix of ['/api/*', '/files/*', '/bench-files/*']) {
   app.use(prefix, guard);
 }
 app.get('/api/auth/config', authConfig);
+app.get('/api/wometrics/setup-schema', async (c) => {
+  c.header('Cache-Control', 'public, max-age=3600');
+  return c.json(JSON.parse(await readFile(path.join(ROOT, 'packages/metrics/schema/agent-setup-v1.json'), 'utf8')));
+});
 
 app.get('/api/health', (c) => c.get('user') ? c.json({ ok: true, keys: keysConfigured(), defaults: DEFAULT_OPTIONS }) : c.json({ ok: true }));
 
@@ -217,6 +229,9 @@ app.post('/api/worlds', async (c) => {
   } catch {
     return c.json({ error: 'options must be JSON' }, 400);
   }
+  if ((options.plannerModel === 'gpt-6.1-sol' || options.placementAgents.includes('gpt-6.1-sol')) && !openAiConfigured()) {
+    return c.json({ error: 'GPT-6.1 Sol needs OPENAI_API_KEY in the server environment.' }, 400);
+  }
   const rawFrame = form.get('frame');
   const frameIndex = typeof rawFrame === 'string' && rawFrame !== '' ? Number(rawFrame) : photo.primary;
   if (!Number.isInteger(frameIndex) || frameIndex < 0 || frameIndex >= photo.frames.length) return c.json({ error: `frame must be 0–${photo.frames.length - 1}` }, 400);
@@ -247,6 +262,24 @@ app.post('/api/worlds', async (c) => {
   for (const n of photo.notes) world.log(`upload: ${n}`);
   void startWorld(world);
   return c.json(world.manifest, 201);
+});
+
+// Every generation has read-only facts, including queued, partial and legacy worlds.
+app.get('/api/worlds/:id/metrics', async (c) => {
+  const world = await requireWorld(c);
+  if (!world) return c.json({ error: 'not found' }, 404);
+  const access = c.get('access');
+  const owner = access !== null && levelOf(c.get('user'), access) === 'owner';
+  const [scene, observations, par] = await Promise.all([
+    readFile(world.file('scene.json'), 'utf8').then((text) => JSON.parse(text) as SceneDoc).catch((err: NodeJS.ErrnoException) => {
+      if (err.code === 'ENOENT') return null;
+      throw err;
+    }),
+    owner ? listObservations({ world: world.id }) : undefined,
+    currentParStatus(),
+  ]);
+  c.header('Cache-Control', 'private, no-store');
+  return c.json(worldMetrics(world.manifest, scene, { owner, running: isRunning(world.id), reprojection: existsSync(world.file('reprojection.jpg')), observations, par }));
 });
 
 // The real camera against each depth model: field of view (from EXIF) and depth (from an iPhone's depth map).
@@ -395,6 +428,25 @@ app.get('/api/worlds/:id/slides', async (c) => {
   return c.json(await worldSlides(world));
 });
 
+// Video history follows the world's sharing; submitting a paid generation remains an owner action.
+app.get('/api/worlds/:id/videos', async (c) => {
+  const world = await requireWorld(c);
+  if (!world) return c.json({ error: 'not found' }, 404);
+  c.header('Cache-Control', 'no-store');
+  return c.json(await listVideoGenerations(world));
+});
+
+app.post('/api/worlds/:id/videos', bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: 'The video request is too large.' }, 413) }), async (c) => {
+  const world = await requireWorld(c);
+  if (!world) return c.json({ error: 'not found' }, 404);
+  try {
+    return c.json(await createVideoGeneration(world, await c.req.json().catch(() => null)), 202);
+  } catch (err) {
+    if (err instanceof VideoError) return c.json({ error: err.message }, err.status);
+    throw err;
+  }
+});
+
 app.post('/api/worlds/:id/slides', async (c) => {
   const world = await requireWorld(c);
   if (!world) return c.json({ error: 'not found' }, 404);
@@ -436,6 +488,12 @@ app.post('/api/worlds/:id/retry', async (c) => {
   const world = await requireWorld(c);
   if (!world) return c.json({ error: 'not found' }, 404);
   if (isRunning(world.id)) return c.json({ error: 'This world is still being built.' }, 409);
+  const body = (await c.req.json().catch(() => ({}))) as Partial<WorldOptions>;
+  const prev = world.manifest.options;
+  const next = retryOptions(prev, body);
+  if ((next.plannerModel === 'gpt-6.1-sol' || next.placementAgents.includes('gpt-6.1-sol')) && !openAiConfigured()) {
+    return c.json({ error: 'GPT-6.1 Sol needs OPENAI_API_KEY in the server environment.' }, 400);
+  }
   // A build that failed gave its credits back. Hold them again before anything runs, or say there are too few. A retry of a
   // partial build is free, because it still holds them, and so is an administrator's.
   const user = c.get('user')!;
@@ -448,10 +506,7 @@ app.post('/api/worlds/:id/retry', async (c) => {
     }
   }
   // Optionally switch models for the parts that are retried (e.g. a different mesh model).
-  const body = (await c.req.json().catch(() => ({}))) as Partial<WorldOptions>;
   // Worlds made before an option existed keep their old behaviour on a retry unless asked otherwise (see retryOptions).
-  const prev = world.manifest.options;
-  const next = retryOptions(prev, body);
   if (JSON.stringify(next) !== JSON.stringify(world.manifest.options)) {
     await world.update((m) => { m.options = next; });
     world.log(`Options for retry: ${JSON.stringify(next)}`);
@@ -525,15 +580,15 @@ app.post('/api/worlds/:id/agents', async (c) => {
   const world = await requireWorld(c);
   if (!world) return c.json({ error: 'not found' }, 404);
   const body = (await c.req.json().catch(() => ({}))) as { agents?: unknown; run?: unknown };
-  if (!Array.isArray(body.agents)) return c.json({ error: 'expected { agents: ["muse-spark-1.3" | "muse-wonder-1.0", …], run?: boolean }' }, 400);
-  const agents = [...new Set(body.agents.filter((a): a is PlannerModel => a === 'muse-spark-1.3' || a === 'muse-wonder-1.0'))];
+  if (!Array.isArray(body.agents)) return c.json({ error: `expected { agents: [${PLANNER_MODELS.join(' | ')}], run?: boolean }` }, 400);
+  const agents = [...new Set(body.agents.filter((a): a is PlannerModel => PLANNER_MODELS.includes(a as PlannerModel)))];
+  if (agents.includes('gpt-6.1-sol') && !openAiConfigured()) return c.json({ error: 'GPT-6.1 Sol needs OPENAI_API_KEY in the server environment.' }, 400);
   if (isRunning(world.id)) return c.json({ error: 'This world is busy; try again when it is done.' }, 409);
   await world.update((m) => { m.options.placementAgents = agents; });
   let toRun: PlannerModel[] = [];
   if (body.run !== false && existsSync(world.file('scene.json'))) {
     const doc = JSON.parse(await readFile(world.file('scene.json'), 'utf8')) as SceneDoc;
-    const placed = new Set(doc.placement?.methods.map((m) => m.id));
-    toRun = agents.filter((a) => !placed.has(AGENT_PLACEMENTS[a]));
+    toRun = agents.filter((a) => placementAgentNeedsRun(doc, AGENT_PLACEMENTS[a], world.manifest.plan?.objects));
   }
   if (toRun.length && !startTask(world, 'Placement agents', () => runPlacementAgents(world, toRun))) {
     return c.json({ error: 'This world is busy; try again when it is done.' }, 409);
@@ -749,9 +804,35 @@ async function sendFile(c: Context, file: string, cache: string) {
   }
   if (!info.isFile()) return c.json({ error: 'not found' }, 404);
   const type = MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream';
+  const headers: Record<string, string> = { 'Content-Type': type, 'Content-Length': String(info.size), 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' };
+  // Safari and browser thumbnail extraction seek into MP4s using byte ranges.
+  if (type.startsWith('video/')) {
+    headers['Accept-Ranges'] = 'bytes';
+    const range = c.req.header('Range');
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+      let start = 0, end = info.size - 1;
+      let valid = Boolean(match && (match[1] || match[2]) && info.size > 0);
+      if (match && match[1]) {
+        start = Number(match[1]);
+        if (match[2]) end = Math.min(Number(match[2]), info.size - 1);
+        valid &&= Number.isSafeInteger(start) && (!match[2] || Number.isSafeInteger(Number(match[2])));
+      } else if (match) {
+        const suffix = Number(match[2]);
+        start = Math.max(0, info.size - suffix);
+        valid &&= Number.isSafeInteger(suffix) && suffix > 0;
+      }
+      valid &&= start >= 0 && start <= end && start < info.size;
+      if (!valid) return new Response(null, { status: 416, headers: { ...headers, 'Content-Length': '0', 'Content-Range': `bytes */${info.size}` } });
+      headers['Content-Length'] = String(end - start + 1);
+      headers['Content-Range'] = `bytes ${start}-${end}/${info.size}`;
+      const body = Readable.toWeb(createReadStream(file, { start, end })) as ReadableStream;
+      return new Response(body, { status: 206, headers });
+    }
+  }
   const body = Readable.toWeb(createReadStream(file)) as ReadableStream;
   return new Response(body, {
-    headers: { 'Content-Type': type, 'Content-Length': String(info.size), 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' },
+    headers,
   });
 }
 
@@ -773,7 +854,7 @@ app.get('/files/:id/*', async (c) => {
     return c.json({ error: 'not found' }, 404);
   }
   // Generated artifacts never change in place except scene.json and relief.glb (rebuilt by compose).
-  const mutable = /(^|\/)(scene\.json|relief\.glb|manifest\.json|log\.txt|slides\.json)$/.test(rel);
+  const mutable = /(^|\/)(scene\.json|relief\.glb|manifest\.json|log\.txt|slides\.json|videos\.json)$/.test(rel);
   return sendFile(c, file, mutable ? 'no-cache' : 'private, max-age=31536000, immutable');
 });
 
@@ -847,6 +928,7 @@ async function start() {
     if (SIGN_IN_REQUIRED && STORE !== 'postgres') console.warn('Sign-in is required but WOM_STORE is not postgres: no world can be shared, and anyone signed in can reach every world. Set WOM_STORE=postgres to share worlds by link.');
   });
   void resumeWorlds();
+  void resumeVideoGenerations().catch((err) => console.error(`[videos] could not resume video jobs: ${errorMessage(err)}`));
 }
 
 // Resume worlds that were interrupted by a restart; their AI3D jobs are resumed, not resubmitted.

@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { WorldOptions } from './types.ts';
+import { PLANNER_MODELS, type WorldOptions } from './types.ts';
 
 export const ROOT = path.resolve(import.meta.dirname, '../..');
 export const DATA_DIR = path.resolve(process.env.WOM_DATA_DIR ?? path.join(ROOT, 'data'));
@@ -101,7 +101,7 @@ export function retryOptions(prev: Partial<WorldOptions>, body: Partial<WorldOpt
 
 export function normalizeOptions(input: Partial<WorldOptions> | undefined): WorldOptions {
   const o = { ...DEFAULT_OPTIONS, ...(input ?? {}) };
-  const planners = ['muse-spark-1.3', 'muse-wonder-1.0'] as const;
+  const planners = PLANNER_MODELS;
   const meshes = ['idol', 'triposplat', 'tripo-v31', 'tripo-p1', 'tripo-h31-image', 'tripo-p1-image'] as const;
   const worlds = ['worldlabs', 'worldlabs-draft', 'none'] as const;
   const depths = ['moge2', 'moge3'] as const;

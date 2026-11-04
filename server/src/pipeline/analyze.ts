@@ -1,6 +1,7 @@
 // Muse Spark (or Muse Wonder) reads the photo and writes the scene plan: which objects become their own
 // meshes, where they are, how to erase them, and how the surrounding world should look.
-import { chatJson, toDataUrl } from '../clients/meta.ts';
+import { toDataUrl } from '../clients/meta.ts';
+import { modelJson as chatJson } from '../clients/llm.ts';
 import type { Box, PlannedObject, PlannerModel, ScenePlan } from '../types.ts';
 import { clamp } from '../util.ts';
 

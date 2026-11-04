@@ -83,7 +83,9 @@ try {
   };
   const waitBrowse = (key) => page.waitForFunction((k) => {
     const s = window.__wom?.space?.state();
-    return s && s.mode === 'browse' && (!k || s.key === k) && Math.abs(s.focus - s.target) < 0.001;
+    return s && s.mode === 'browse' && (!k || s.key === k) && Math.abs(s.focus - s.target) < 0.001 &&
+      s.zoom === s.zoomTarget && s.extraction === s.extractionTarget &&
+      (s.extractionTarget !== 0 || s.extracted === null);
   }, key ?? null, { timeout: 30000, polling: 100 });
 
   // ---------- A. Inside the world: turn and step aside, then save the view as a slide ----------
@@ -129,6 +131,10 @@ try {
   await page.screenshot({ path: `${out}/b_world_space.png` });
 
   // ---------- C. Play the view: the flight lands on the frame; the viewer opens at the slide's entry ----------
+  await page.keyboard.press('Enter');
+  await waitBrowse(key);
+  const staged = await page.evaluate(() => window.__wom.space.state());
+  check('first Enter extracts the view before world entry', staged.extracted === key && staged.extraction === 1 && staged.mode === 'browse', JSON.stringify(staged));
   await page.evaluate(() => { window.__setSpeed(0.05); window.__samePage = true; });
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => (window.__wom.space?.flight()?.u ?? 0) > 0.992, null, { timeout: 60000, polling: 'raf' });
@@ -194,7 +200,7 @@ try {
   await waitBrowse(key);
   await sleep(400);
   const after = await page.evaluate(() => ({ s: window.__wom.space.state(), covers: document.querySelectorAll('.slide-cover').length, flyers: document.querySelectorAll('.slide.flying').length }));
-  check('the space comes back to rest on the slide', after.s.key === key && after.s.isolate === 0, JSON.stringify(after.s));
+  check('the space comes back to the staged slide', after.s.key === key && after.s.extracted === key && after.s.extraction === 1 && after.s.isolate === 0, JSON.stringify(after.s));
   check('no cover or flying slide is left', after.covers === 0 && after.flyers === 0, JSON.stringify(after));
   await page.screenshot({ path: `${out}/d_back.png` });
 
@@ -214,6 +220,7 @@ try {
   // ---------- F. Remove the view from its world space ----------
   await openSpace(`#/space/world/${WORLD}?slide=${encodeURIComponent(key)}`, made.worldTitle);
   await waitBrowse(key);
+  await page.click('.space-more summary');
   await page.click('.space-actions button:has-text("Remove slide")');
   await page.waitForFunction((n) => window.__wom.space.keys().length === n, ways - 1, { timeout: 20000 });
   const left = await getJson(`/api/worlds/${WORLD}/slides`);
