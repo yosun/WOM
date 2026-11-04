@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /files/
+Disallow: /bench-files/
+
+Sitemap: https://wom.quest/sitemap.xml

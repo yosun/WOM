@@ -4,7 +4,7 @@ const api = `http://127.0.0.1:${process.env.PORT ?? 8787}`;
 
 export default defineConfig({
   root: 'web',
-  publicDir: false,
+  publicDir: 'public',
   build: {
     outDir: '../dist',
     emptyOutDir: true,
@@ -16,6 +16,8 @@ export default defineConfig({
     proxy: {
       '/api': { target: api, changeOrigin: false },
       '/files': { target: api, changeOrigin: false },
+      // Benchmark overlays, asset-check sheets and observation frames.
+      '/bench-files': { target: api, changeOrigin: false },
     },
   },
   optimizeDeps: {
