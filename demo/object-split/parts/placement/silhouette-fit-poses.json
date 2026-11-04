@@ -1,0 +1,54 @@
+{
+ "old single woman": [
+  {
+   "name": "old",
+   "ply": "data/worlds/mvzp2tur93987dde/objects/smiling-woman-in-pink-un/idol/model.ply",
+   "position": [
+    0.043231042263354204,
+    0.01946513229697751,
+    -1.3654991099875247
+   ],
+   "quaternion": [
+    0.6946679164030535,
+    -0.04140988698259714,
+    0.7168745972040075,
+    -0.042573689808622486
+   ],
+   "scale": 0.49066600228468416
+  }
+ ],
+ "split, compose fitter": [
+  {
+   "name": "woman-head",
+   "ply": ".scratch/idol-split/data/worlds/mw16xplr29532e14/objects/woman-head/idol/model.ply",
+   "position": [
+    -0.02328254759130489,
+    0.11039262729374646,
+    -1.3555195496528958
+   ],
+   "quaternion": [
+    0.5782633983892987,
+    -0.07657215362038729,
+    0.8105143073689556,
+    -0.05305379273357767
+   ],
+   "scale": 0.3247451053201076
+  },
+  {
+   "name": "woman-body",
+   "ply": ".scratch/idol-split/data/worlds/mw16xplr29532e14/objects/woman-body/idol/model.ply",
+   "position": [
+    0.0415450557596307,
+    -0.09067977122980743,
+    -1.3337763267593976
+   ],
+   "quaternion": [
+    0.7554464255031652,
+    0.022090652358449727,
+    0.654308498073953,
+    0.026326614310932226
+   ],
+   "scale": 0.48204808140090083
+  }
+ ]
+}

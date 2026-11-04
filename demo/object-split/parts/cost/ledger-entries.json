@@ -1,0 +1,64 @@
+{
+  "note": "Lines copied from data/ledger.jsonl: the three IDOL jobs the page compares, the SAM calls that found the parts, and the 1,048,576-Gaussian test. Nothing else the app spent is included.",
+  "entries": [
+    {
+      "role": "one object (the original pipeline)",
+      "at": "2026-11-02T20:14:54.765Z",
+      "context": "pipeline",
+      "provider": "ai3d",
+      "label": "IDOL splat: smiling woman in pink uniform",
+      "usd": 0.1,
+      "estimated": false,
+      "worldId": "mvzp2tur93987dde",
+      "model": "idol",
+      "jobId": "2a8a9922-4c71-5bd1-eb5b-bab21a92ee71"
+    },
+    {
+      "role": "head",
+      "at": "2026-11-03T21:34:46.975Z",
+      "context": "pipeline",
+      "provider": "ai3d",
+      "label": "IDOL splat: smiling woman's head and neck",
+      "usd": 0.1,
+      "estimated": false,
+      "worldId": "mw16xplr29532e14",
+      "model": "idol",
+      "jobId": "bb6072dc-8274-6952-35bd-e811f127e347"
+    },
+    {
+      "role": "body",
+      "at": "2026-11-03T21:34:47.848Z",
+      "context": "pipeline",
+      "provider": "ai3d",
+      "label": "IDOL splat: smiling woman's torso and arms",
+      "usd": 0.1,
+      "estimated": false,
+      "worldId": "mw16xplr29532e14",
+      "model": "idol",
+      "jobId": "d9d3422a-0268-cc8d-0bb3-a99c6d0060e0"
+    },
+    {
+      "role": "part masks",
+      "at": "2026-11-03T22:36:43.137Z",
+      "context": "pipeline",
+      "provider": "meta",
+      "label": "SAM 3.1 segmentation: woman head and body parts (10 requests)",
+      "usd": 0.025,
+      "estimated": false,
+      "worldId": "mw16xplr29532e14",
+      "model": "sam-3.1"
+    },
+    {
+      "role": "1,048,576-Gaussian test",
+      "at": "2026-11-03T20:58:53.223Z",
+      "context": "pipeline",
+      "provider": "ai3d",
+      "label": "IDOL splat: smiling woman in pink uniform (1M Gaussians test)",
+      "usd": 0.1,
+      "estimated": false,
+      "worldId": "mvzp2tur93987dde",
+      "model": "idol",
+      "jobId": "76e95fdd-67eb-9005-6994-04ae73941e15"
+    }
+  ]
+}

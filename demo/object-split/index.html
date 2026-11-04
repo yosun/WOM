@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object split · World of a Memory</title>
+<meta name="description" content="One photo becomes a 3D scene. Object split cuts a person into parts, builds each on its own, places it to the photo's pixels, and gives the eyes back to the photo.">
+<meta property="og:title" content="Split the subject. Keep the detail.">
+<meta property="og:description" content="Object split for World of a Memory: faces that keep their eyes in 3D.">
+<meta property="og:image" content="assets/img/face-eyes.webp">
+<meta name="theme-color" content="#0f0c0d">
+<link rel="preload" as="image" href="assets/img/full-photo.webp">
+<link rel="preload" as="image" href="assets/img/full-one.webp">
+<link rel="modulepreload" href="hero.js">
+<link rel="modulepreload" href="cloud.js">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23ff8b78%27/%3E%3Cpath d=%27M7 16h18M16 7v18%27 stroke=%27%232a0f0b%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="demo.css">
+<link rel="stylesheet" href="hero.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/three.module.js",
+  "three/addons/": "./vendor/three/addons/",
+  "@sparkjsdev/spark": "./vendor/spark/spark.module.min.js"
+} }
+</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">World of a Memory <b>/ Object split</b></a>
+    <ul id="nav-links">
+      <li><a href="#split">Split</a></li>
+      <li><a href="#place">Place</a></li>
+      <li><a href="#eyes">Eyes</a></li>
+      <li><a href="#explore">Explore</a></li>
+      <li><a href="#numbers">Numbers</a></li>
+      <li><a href="#parts">Parts</a></li>
+    </ul>
+    <a class="btn primary" href="#parts">Saved parts</a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-head">
+        <div class="eyebrow">Object split · World of a Memory</div>
+        <h1>Split the subject. <em>Keep the detail.</em></h1>
+        <p class="lead">One photo becomes a 3D scene, and the face is where it usually falls apart. Object split cuts a person into parts, builds each part on its own, places it to the photo's pixels, and gives the eyes back to the photo.</p>
+        <div class="hero-cta"><a class="btn primary" href="#explore">Walk around it in 3D</a><a class="btn" href="#parts">Saved parts</a></div>
+      </div>
+
+      <div class="hero-card">
+        <div class="chap" id="chap">
+          <div class="chap-top"><span class="chap-no" id="chap-no">01</span><span class="chap-kick" id="chap-kick">The usual way</span></div>
+          <h2 class="chap-title" id="chap-title">One 3D object for the whole person.</h2>
+          <p class="chap-text" id="chap-text">Her face takes only about a third of the width the 3D model is given. Her eyes come out smeared.</p>
+          <div class="chap-metric" id="chap-metric" hidden></div>
+        </div>
+      </div>
+
+      <div class="hero-stagecol">
+        <div class="stage" id="stage" role="group" aria-label="Animated walkthrough: one photo, split into parts, built, placed, and the eyes corrected">
+          <div class="st-bg"></div>
+          <div class="st-world" id="st-world"></div>
+          <canvas class="st-cloud" id="st-cloud" aria-hidden="true"></canvas>
+          <svg class="st-svg" id="st-svg" aria-hidden="true"></svg>
+          <div class="cmp hero-cmp" id="hero-cmp" inert aria-label="Before and after comparison of the same face in 3D">
+            <div class="cmp-layer cmp-after"><img data-src="assets/img/face-eyes.webp" alt="After: split into parts with the eye corrector" width="2400" height="1600"></div>
+            <div class="cmp-layer cmp-before"><img data-src="assets/img/face-one.webp" alt="Before: the person built as one object" width="2400" height="1600"></div>
+            <span class="cmp-tag cmp-tag-l">One object</span>
+            <span class="cmp-tag cmp-tag-r">Split + eye corrector</span>
+            <div class="cmp-handle" role="slider" tabindex="0" aria-label="Divider between before and after" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"><i></i></div>
+            <div class="cmp-lens" hidden><div class="lens-layer lens-after"></div><div class="lens-layer lens-before"></div><div class="lens-cut"></div></div>
+            <span class="cmp-hint">Drag the divider · move the pointer to magnify</span>
+          </div>
+          <div class="st-ui" id="st-ui"></div>
+        </div>
+        <div class="hero-ctl" id="hero-ctl">
+          <button class="ctl-play" id="ctl-play" type="button" aria-label="Play the story"></button>
+          <div class="ctl-chips" id="ctl-chips" role="group" aria-label="Chapters"></div>
+          <input class="ctl-scrub" id="ctl-scrub" type="range" min="0" max="30" step="0.01" value="0" aria-label="Position in the story">
+        </div>
+        <p class="hero-note">Pictures are renders from the photo's own camera, drawn by Spark, the viewer's own splat renderer. The dots in steps 03 and 04 are a sample of the real Gaussians, not a render.</p>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="st-place">–</b><span id="st-place-l"></span></div>
+      <div class="stat"><b id="st-sharp">–</b><span id="st-sharp-l"></span></div>
+      <div class="stat"><b id="st-face">–</b><span id="st-face-l"></span></div>
+      <div class="stat"><b id="st-cost">–</b><span id="st-cost-l"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 1 SPLIT ============ -->
+<section class="step" id="split">
+  <div class="wrap">
+    <div class="step-head rv">
+      <div class="step-no">01</div>
+      <h2>Cut her into parts a 3D model can do justice</h2>
+      <p>SAM 3.1 finds nine parts: hair, face, neck, ear, headband, hand, dress and both arms. We regroup them into what a 3D model builds best, a <b>head</b> and a <b>body</b>. They overlap across the neck<span id="seam-note"></span> so a seam can't open, and the hand stays with the body so it can sit in front of her jaw.</p>
+    </div>
+
+    <div class="cols rv">
+      <div>
+        <div class="ex-controls">
+          <div class="seg" id="ex-mode" role="group" aria-label="What to show">
+            <button type="button" data-mode="parts" aria-pressed="true">Nine parts</button>
+            <button type="button" data-mode="split" aria-pressed="false">Head &amp; body</button>
+            <button type="button" data-mode="one" aria-pressed="false">One object</button>
+          </div>
+          <label class="slide" id="ex-pull-wrap" hidden>Pull apart <input type="range" id="ex-pull" min="0" max="100" value="0" aria-label="Pull the head and body apart"></label>
+        </div>
+        <div class="ex-stage" id="explorer">
+          <canvas aria-label="The photo with its parts highlighted. Hover to name a part."></canvas>
+          <div class="ex-tip" hidden></div>
+        </div>
+        <p class="fine" style="margin-top:10px">Hover a part to name it. Masks from SAM 3.1, drawn over the photo.</p>
+      </div>
+      <div>
+        <ul class="legend" id="ex-legend"></ul>
+        <p class="callout" id="ex-note" style="margin-top:18px"></p>
+      </div>
+    </div>
+
+    <div class="rv" style="margin-top:44px">
+      <h3 style="font-size:22px;margin-bottom:6px">What the 3D model receives</h3>
+      <p class="muted" style="max-width:76ch">The 3D model frames each cutout to its object. Given the whole figure, her face is a third of the picture. Given the head alone, it is more than half: the same model sees it larger, for the same budget of Gaussians.</p>
+      <div class="cutouts" id="cutouts">
+        <figure><div class="cut"><img src="assets/img/cutout-one.webp" alt="The whole figure as the 3D model received it" loading="lazy"></div><figcaption><b>One object</b><span id="cap-one"></span></figcaption></figure>
+        <figure><div class="cut"><img src="assets/img/cutout-head.webp" alt="The head as the 3D model received it" loading="lazy"></div><figcaption><b>Head</b><span id="cap-head"></span></figcaption></figure>
+        <figure><div class="cut"><img src="assets/img/cutout-body.webp" alt="The body as the 3D model received it" loading="lazy"></div><figcaption><b>Body</b><span id="cap-body"></span></figcaption></figure>
+      </div>
+      <div class="share">
+        <div><b id="share-whole">–</b><span>of the picture's width is her face, as one object</span></div>
+        <div class="up"><b id="share-head">–</b><span id="share-head-l"></span></div>
+      </div>
+      <p class="fine" style="margin-top:14px" id="split-aside"></p>
+      <details class="test1m" id="test1m">
+        <summary>Show the "more Gaussians" test</summary>
+        <div class="t1m-grid">
+          <figure><img src="assets/img/test-1m-photo.webp" width="660" height="394" loading="lazy" alt="The photo's right eye: lashes, liner, a brown iris with two highlights"><figcaption>The photo</figcaption></figure>
+          <figure><img src="assets/img/test-1m-262k.webp" width="660" height="394" loading="lazy" alt="The same eye from the smaller model: a dark smear with no iris"><figcaption id="t1m-a"></figcaption></figure>
+          <figure><img src="assets/img/test-1m-1m.webp" width="660" height="394" loading="lazy" alt="The same eye from the model with four times the Gaussians: just as smeared"><figcaption id="t1m-b"></figcaption></figure>
+        </div>
+        <p class="fine" id="test1m-cap"></p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2 PLACE ============ -->
+<section class="step" id="place">
+  <div class="wrap">
+    <div class="step-head rv">
+      <div class="step-no">02</div>
+      <h2>Put every part where the photo has it</h2>
+      <p>A 3D model gives each part an arbitrary size and turn. The pipeline's own fitter matches silhouettes, and a silhouette can't say where an eye is. So each part is fitted to the photo's pixels, then every Gaussian is nudged sideways in the photo's view until features, outlines and the seam land on the photo's.</p>
+    </div>
+
+    <div class="rv">
+      <div class="row" style="margin-bottom:14px;justify-content:space-between">
+        <div class="seg" id="place-method" role="group" aria-label="Placement method">
+          <button type="button" data-m="one" aria-pressed="false">One object</button>
+          <button type="button" data-m="fit" aria-pressed="false">Split · silhouette fit</button>
+          <button type="button" data-m="aligned" aria-pressed="true">Split · pixel-aligned</button>
+        </div>
+        <label class="check"><input type="checkbox" id="place-edges" checked> Draw the photo's edges over the 3D side</label>
+      </div>
+      <div class="place-box">
+        <div class="cmp" id="place-cmp" aria-label="The photo against the 3D scene from the same camera">
+          <div class="cmp-layer cmp-after"><img id="place-render" src="assets/img/full-aligned.webp" alt="The 3D scene from the photo's camera" width="1699" height="926"><img class="edges" id="place-edges-img" src="assets/img/photo-edges.png" alt="" width="1699" height="926"></div>
+          <div class="cmp-layer cmp-before"><img src="assets/img/full-photo.webp" alt="The original photo" width="1699" height="926"></div>
+          <span class="cmp-tag cmp-tag-l">Photo</span>
+          <span class="cmp-tag cmp-tag-r" id="place-tag">3D scene</span>
+          <div class="cmp-handle" role="slider" tabindex="0" aria-label="Divider between the photo and the 3D scene" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"><i></i></div>
+        </div>
+        <svg class="place-svg" id="place-svg" viewBox="0 0 1699 926" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div class="key"><span><i style="background:var(--green)"></i>within 2 px</span><span><i style="background:var(--amber)"></i>2–10 px</span><span><i style="background:var(--red)"></i>over 10 px</span><span>Rings sit where the photo has each feature. The line runs to where the 3D scene puts it.</span></div>
+    </div>
+
+    <div class="cols rv" style="margin-top:34px">
+      <div class="panel" style="padding:18px 18px 12px">
+        <table class="ftable" id="place-table"><thead><tr><th>Feature</th><th class="num">One object</th><th class="num">Silhouette fit</th><th class="num">Pixel-aligned</th></tr></thead><tbody></tbody></table>
+        <p class="fine" style="margin:10px 4px 4px">How far each feature lands from the photo's, in photo pixels. Rows highlight their ring on hover.</p>
+      </div>
+      <div>
+        <div class="share" style="margin-top:0">
+          <div><b id="iou-fit" class="mid">–</b><span>silhouette overlap with her mask, split + silhouette fit</span></div>
+          <div class="up"><b id="iou-aligned">–</b><span>after pixel alignment</span></div>
+        </div>
+        <p class="callout" style="margin-top:18px" id="place-note"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 EYES ============ -->
+<section class="step" id="eyes">
+  <div class="wrap">
+    <div class="step-head rv">
+      <div class="step-no">03</div>
+      <h2>Hand the eyes back to the photo</h2>
+      <p>At the photo's own camera the head's eyes, brows, nose, mouth and earring each land within <span id="head-within">a pixel</span> of the photo's, so the photo is ground truth for the eyes. A thin layer of new Gaussians closes the gaps the 3D model leaves there, and the colours around the eyes are fitted to the photo by least squares. <span id="outside-lead">The rest of the picture is left alone.</span></p>
+    </div>
+
+    <div class="rv">
+      <div class="row" style="margin-bottom:14px;justify-content:space-between">
+        <span class="muted" style="font-size:14.5px">Move over any picture: the loupe follows in all four, at the same spot.</span>
+        <label class="check"><input type="checkbox" id="eye-align" checked> Slide each eye onto the photo's, to judge detail apart from placement</label>
+      </div>
+      <div class="eyelab" id="eyelab"></div>
+    </div>
+
+    <div class="facts rv" id="corr-facts"></div>
+    <p class="fine rv" style="margin-top:16px">The layer is painted from the photo's camera. Near that viewpoint it is the photo; far to the side the lashes read as flat. It needs the photo as ground truth, so it is a correction for views near the photo's, not a way to invent detail the photo never had.</p>
+  </div>
+</section>
+
+<!-- ============ 4 EXPLORE ============ -->
+<section class="step" id="explore">
+  <div class="wrap">
+    <div class="step-head rv">
+      <div class="step-no">04</div>
+      <h2>Walk around the result</h2>
+      <p>The same parts, live in your browser. Drag to orbit, jump between views, pull the head off the body, or wipe between one object and the split. Ctrl or ⌘ with the scroll wheel zooms.</p>
+    </div>
+    <div class="viewer rv" id="viewer-root">
+      <div class="v-stage" id="v-stage">
+        <img class="v-poster" src="assets/img/full-eyes.webp" alt="" loading="lazy">
+        <div class="v-load" id="v-load"><b>Loading the 3D parts</b><div class="muted" style="font-size:13.5px" id="v-load-t">Starts when this section is near.</div><div class="bar"><i id="v-load-bar"></i></div></div>
+      </div>
+      <div class="v-controls" id="v-controls" hidden>
+        <div class="group"><span class="label">Show</span>
+          <div class="seg" id="v-mode" role="group" aria-label="What to show">
+            <button type="button" data-mode="compare" aria-pressed="true">Compare</button>
+            <button type="button" data-mode="split" aria-pressed="false">Split</button>
+            <button type="button" data-mode="one" aria-pressed="false">One object</button>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="v-eyes" checked> Eye corrector</label>
+        <label class="slide">Pull apart <input type="range" id="v-explode" min="0" max="100" value="0" aria-label="Pull the head and body apart"></label>
+        <div class="group"><span class="label">View</span>
+          <div class="seg" id="v-view" role="group" aria-label="Camera">
+            <button type="button" data-view="face">Face</button>
+            <button type="button" data-view="eyes">Eyes</button>
+            <button type="button" data-view="bust">Bust</button>
+            <button type="button" data-view="side">Side</button>
+          </div>
+        </div>
+      </div>
+      <p class="v-note" id="v-note" hidden></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NUMBERS ============ -->
+<section class="plain" id="numbers">
+  <div class="wrap">
+    <h2 class="rv">Measured, not claimed</h2>
+    <p class="sub rv">Every figure here comes from the saved renders and masks. Placement and detail are reported separately: each eye is first slid onto the photo's, then compared, so a misplaced eye can't pass for a blurry one.</p>
+    <div class="panel scroll-x rv"><table class="ntable" id="ntable"></table></div>
+    <p class="fine rv" style="margin-top:12px">One photo, the "Beauty Counter Smile" portrait, measured against the photo from its own camera. Eye sharpness is the variance of the Laplacian inside each eye, as a share of the photo's. Placement is the distance between where the render puts the eye and where the photo has it.</p>
+    <p class="fine rv" style="margin-top:8px" id="num-reconcile"></p>
+  </div>
+</section>
+
+<!-- ============ PARTS ============ -->
+<section class="plain" id="parts">
+  <div class="wrap">
+    <h2 class="rv">Every part is saved</h2>
+    <p class="sub rv" id="parts-sub"></p>
+    <div id="parts-groups" class="rv"></div>
+  </div>
+</section>
+
+<!-- ============ LIMITS ============ -->
+<section class="plain" id="limits">
+  <div class="wrap">
+    <h2 class="rv">What this doesn't claim</h2>
+    <p class="sub rv">A demo should say where it stops.</p>
+    <div class="limits rv">
+      <div class="limit"><b>One photo.</b><span>Every number is from this portrait, and the parts were made by scripts. The pipeline now splits, aligns and corrects a person by itself, in a slightly different way; this page shows the scripted run.</span></div>
+      <div class="limit"><b>A wedge from the side.</b><span id="lim-wedge"></span></div>
+      <div class="limit"><b>The eye corrector is a photo-view fix.</b><span>The corrected eyes are painted from the photo's camera. Close to that viewpoint they match the photo; far around, the lashes look flat.</span></div>
+      <div class="limit"><b>The head is bent to fit.</b><span id="lim-bend"></span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b style="color:var(--text)">Run it.</b> This folder is the whole demo; it needs an http:// address because it loads ES modules and 3D files.</p>
+    <pre>node demo/object-split/serve.mjs        # http://127.0.0.1:8790/</pre>
+    <p>Built on the World of a Memory pipeline: SAM 3.1 for the parts, IDOL for the 3D, Spark to draw it. three.js and Spark are MIT licensed and bundled under <code>vendor/</code>. The saved parts are in <code>parts/</code>; <code>tools/</code> rebuilds the web files from them. See <code>README.md</code>.</p>
+  </div>
+</footer>
+
+<script type="module" src="demo.js"></script>
+</body>
+</html>

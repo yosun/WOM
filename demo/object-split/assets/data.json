@@ -1,0 +1,731 @@
+{
+ "made": "2026-11-04T02:22:46.850Z",
+ "photo": {
+  "w": 1699,
+  "h": 926,
+  "face": {
+   "x": 480,
+   "y": 120,
+   "w": 600,
+   "h": 400,
+   "zoom": 4
+  },
+  "eyeWindow": {
+   "w": 260,
+   "h": 190,
+   "zoom": 6
+  }
+ },
+ "variants": {
+  "photo": "Photo",
+  "one": "One object",
+  "fit": "Split, silhouette fit",
+  "aligned": "Split, pixel-aligned",
+  "eyes": "Split + eye corrector"
+ },
+ "eyes": [
+  {
+   "id": "right",
+   "name": "Right eye (viewer's right)",
+   "cx": 832,
+   "cy": 248,
+   "a": 42,
+   "b": 24,
+   "deg": -25
+  },
+  {
+   "id": "left",
+   "name": "Left eye",
+   "cx": 711,
+   "cy": 289,
+   "a": 35,
+   "b": 22,
+   "deg": -7.7
+  }
+ ],
+ "eyeMetrics": {
+  "one": {
+   "right": {
+    "id": "right",
+    "pixels": 3164,
+    "shiftPx": 38.629524336486334,
+    "shift": [
+     -10.383464204023433,
+     -37.20784623687528
+    ],
+    "detailMatch": 0.2267083472067772,
+    "colorError": 20.936156763590457,
+    "sharpness": 180.67413811824503,
+    "photoSharpness": 1560.1084538171474
+   },
+   "left": {
+    "id": "left",
+    "pixels": 2418,
+    "shiftPx": 25.631011102658025,
+    "shift": [
+     -11.85666086043858,
+     -22.723739203421673
+    ],
+    "detailMatch": 0.1741945747196697,
+    "colorError": 24.29611248966087,
+    "sharpness": 197.86478620552145,
+    "photoSharpness": 1496.3862328346167
+   }
+  },
+  "fit": {
+   "right": {
+    "id": "right",
+    "pixels": 3164,
+    "shiftPx": 30.793385094275216,
+    "shift": [
+     -29.23348094873035,
+     -9.676577762026746
+    ],
+    "detailMatch": 0.2968148423519626,
+    "colorError": 29.63600927096498,
+    "sharpness": 466.933008789085,
+    "photoSharpness": 1560.1084538171474
+   },
+   "left": {
+    "id": "left",
+    "pixels": 2418,
+    "shiftPx": 17.306848347994443,
+    "shift": [
+     -7.083824140541767,
+     -15.790707244653596
+    ],
+    "detailMatch": 0.11000678138036497,
+    "colorError": 35.96925834022607,
+    "sharpness": 520.7700466476841,
+    "photoSharpness": 1496.3862328346167
+   }
+  },
+  "aligned": {
+   "right": {
+    "id": "right",
+    "pixels": 3164,
+    "shiftPx": 0.42776715113859726,
+    "shift": [
+     0.401418010176989,
+     -0.14781176102996085
+    ],
+    "detailMatch": 0.319894702776395,
+    "colorError": 25.160766961651888,
+    "sharpness": 505.0812970982181,
+    "photoSharpness": 1560.1084538171474
+   },
+   "left": {
+    "id": "left",
+    "pixels": 2418,
+    "shiftPx": 0.38257626451334503,
+    "shift": [
+     0.31500015584523383,
+     -0.21711632823549537
+    ],
+    "detailMatch": 0.384146311885921,
+    "colorError": 22.223462917011304,
+    "sharpness": 459.93876538399445,
+    "photoSharpness": 1496.3862328346167
+   }
+  },
+  "eyes": {
+   "right": {
+    "id": "right",
+    "pixels": 3164,
+    "shiftPx": 0.038470196932005755,
+    "shift": [
+     -0.01417373477600615,
+     -0.03576396642553421
+    ],
+    "detailMatch": 0.9854997307580349,
+    "colorError": 2.480825958702062,
+    "sharpness": 1260.0156535345423,
+    "photoSharpness": 1560.1084538171474
+   },
+   "left": {
+    "id": "left",
+    "pixels": 2418,
+    "shiftPx": 0.041600138374738374,
+    "shift": [
+     -0.013205747585621035,
+     -0.03944844412017088
+    ],
+    "detailMatch": 0.9896832644772744,
+    "colorError": 2.3866832092638512,
+    "sharpness": 1031.5709677399732,
+    "photoSharpness": 1496.3862328346167
+   }
+  }
+ },
+ "figureError": {
+  "one": 26.17,
+  "fit": 27.71,
+  "aligned": 18.75,
+  "eyes": 18.47
+ },
+ "sideGaps": {
+  "angle": 40,
+  "one": 926,
+  "split": 2055,
+  "of": 327680
+ },
+ "features": [
+  {
+   "id": "right-eye",
+   "label": "Right eye",
+   "x": 830,
+   "y": 246,
+   "shift": {
+    "one": [
+     -11.8,
+     -35.98
+    ],
+    "fit": [
+     -29.86,
+     -9.62
+    ],
+    "aligned": [
+     0.13,
+     -0.12
+    ]
+   }
+  },
+  {
+   "id": "left-eye",
+   "label": "Left eye",
+   "x": 712,
+   "y": 289,
+   "shift": {
+    "one": [
+     -12.04,
+     -21.48
+    ],
+    "fit": [
+     -7.25,
+     -15
+    ],
+    "aligned": [
+     0.02,
+     0.16
+    ]
+   }
+  },
+  {
+   "id": "right-brow",
+   "label": "Right brow",
+   "x": 835,
+   "y": 205,
+   "shift": {
+    "one": [
+     -19.74,
+     -37.81
+    ],
+    "fit": [
+     -30.37,
+     -4
+    ],
+    "aligned": [
+     0.01,
+     0.13
+    ]
+   }
+  },
+  {
+   "id": "left-brow",
+   "label": "Left brow",
+   "x": 705,
+   "y": 252,
+   "shift": {
+    "one": [
+     -11.41,
+     -25.87
+    ],
+    "fit": [
+     -4.68,
+     -15.19
+    ],
+    "aligned": [
+     -0.04,
+     -0.12
+    ]
+   }
+  },
+  {
+   "id": "mouth",
+   "label": "Mouth",
+   "x": 805,
+   "y": 378,
+   "shift": {
+    "one": [
+     -11.62,
+     -19.51
+    ],
+    "fit": [
+     -28.21,
+     -23.02
+    ],
+    "aligned": [
+     0.05,
+     -0.01
+    ]
+   }
+  },
+  {
+   "id": "nose",
+   "label": "Nose",
+   "x": 792,
+   "y": 335,
+   "shift": {
+    "one": [
+     -14.03,
+     -30.47
+    ],
+    "fit": [
+     -33.18,
+     -18.3
+    ],
+    "aligned": [
+     0.45,
+     0.08
+    ]
+   }
+  },
+  {
+   "id": "pearl",
+   "label": "Pearl earring",
+   "x": 953,
+   "y": 297,
+   "shift": {
+    "one": [
+     7.62,
+     -2.27
+    ],
+    "fit": [
+     -13.8,
+     -4.05
+    ],
+    "aligned": [
+     0.05,
+     0.01
+    ]
+   }
+  },
+  {
+   "id": "hand",
+   "label": "Hand",
+   "x": 740,
+   "y": 420,
+   "shift": {
+    "one": [
+     -17,
+     -21.73
+    ],
+    "fit": [
+     -0.87,
+     -9.32
+    ],
+    "aligned": [
+     0.31,
+     -0.14
+    ]
+   }
+  },
+  {
+   "id": "collar",
+   "label": "Collar",
+   "x": 1030,
+   "y": 520,
+   "shift": {
+    "one": [
+     -11.73,
+     -2.34
+    ],
+    "fit": [
+     -1.99,
+     30.06
+    ],
+    "aligned": [
+     -0.03,
+     -1.1
+    ]
+   }
+  },
+  {
+   "id": "brooch",
+   "label": "Brooch",
+   "x": 1085,
+   "y": 655,
+   "shift": {
+    "one": [
+     -0.09,
+     0.08
+    ],
+    "fit": [
+     14.54,
+     5.04
+    ],
+    "aligned": [
+     -0.14,
+     -0.03
+    ]
+   }
+  }
+ ],
+ "placement": {
+  "one": {
+   "colorError": 23.98,
+   "silhouetteIoU": 0.9361
+  },
+  "fit": {
+   "colorError": 25.43,
+   "silhouetteIoU": 0.9245
+  },
+  "aligned": {
+   "colorError": 17.24,
+   "silhouetteIoU": 0.992
+  }
+ },
+ "split": {
+  "headPx": 186291,
+  "bodyPx": 342672,
+  "seamPx": 4627,
+  "jawPx": 889,
+  "womanPx": 524336,
+  "leftOverPx": 0,
+  "sam": {
+   "requests": 10,
+   "usd": 0.025,
+   "usdEach": 0.0025
+  }
+ },
+ "seamBandPx": 28,
+ "test1m": {
+  "jobId": "76e95fdd-67eb-9005-6994-04ae73941e15",
+  "usd": 0.1,
+  "gaussians": 1048576,
+  "plyBytes": 71303585
+ },
+ "masks": {
+  "whole": {
+   "area": 524336,
+   "box": [
+    492,
+    0,
+    1373,
+    902
+   ]
+  },
+  "head": {
+   "area": 186291,
+   "box": [
+    566,
+    0,
+    1092,
+    534
+   ]
+  },
+  "body": {
+   "area": 342672,
+   "box": [
+    492,
+    346,
+    1373,
+    902
+   ]
+  },
+  "seam": {
+   "area": 4627,
+   "box": [
+    801,
+    506,
+    978,
+    534
+   ]
+  },
+  "jaw": {
+   "area": 889,
+   "box": [
+    690,
+    346,
+    810,
+    452
+   ]
+  },
+  "hair": {
+   "area": 91103,
+   "box": [
+    563,
+    16,
+    1093,
+    440
+   ]
+  },
+  "face": {
+   "area": 67394,
+   "box": [
+    658,
+    132,
+    963,
+    453
+   ]
+  },
+  "neck": {
+   "area": 23019,
+   "box": [
+    814,
+    363,
+    979,
+    578
+   ]
+  },
+  "ear": {
+   "area": 2459,
+   "box": [
+    934,
+    196,
+    972,
+    289
+   ]
+  },
+  "headband": {
+   "area": 10161,
+   "box": [
+    776,
+    0,
+    956,
+    199
+   ]
+  },
+  "hand": {
+   "area": 11520,
+   "box": [
+    656,
+    348,
+    817,
+    490
+   ]
+  },
+  "dress": {
+   "area": 194449,
+   "box": [
+    490,
+    420,
+    1357,
+    833
+   ]
+  },
+  "arm-left": {
+   "area": 59619,
+   "box": [
+    531,
+    442,
+    812,
+    899
+   ]
+  },
+  "arm-right": {
+   "area": 52305,
+   "box": [
+    706,
+    751,
+    1375,
+    904
+   ]
+  }
+ },
+ "modelInput": {
+  "wholeFigureBox": [
+   492,
+   0,
+   1373,
+   902
+  ],
+  "headBox": [
+   566,
+   0,
+   1092,
+   534
+  ],
+  "faceBox": [
+   658,
+   132,
+   963,
+   453
+  ],
+  "heightRatio": 1.69,
+  "widthRatio": 1.67,
+  "faceShareWhole": 0.346,
+  "faceShareHead": 0.58
+ },
+ "cost": {
+  "idolJobUsd": 0.1,
+  "oneObjectUsd": 0.1,
+  "splitUsd": 0.225,
+  "samUsd": 0.025,
+  "extraUsd": 0.125,
+  "test1mUsd": 0.1
+ },
+ "alignment": {
+  "head": {
+   "gaussians": 262144,
+   "meanMm": 4.481213427633789,
+   "p50Mm": 4.380663587491053,
+   "p95Mm": 9.140171388031524,
+   "p99Mm": 13.24273745557567,
+   "maxMm": 15.015019597262526,
+   "solidP95Mm": 8.744850582531127
+  },
+  "body": {
+   "gaussians": 262144,
+   "meanMm": 5.112425494848333,
+   "p50Mm": 4.95955693601402,
+   "p95Mm": 10.704648019433163,
+   "p99Mm": 12.943385460629957,
+   "maxMm": 16.45606484327041,
+   "solidP95Mm": 10.688273029231578
+  }
+ },
+ "eyeCorrector": {
+  "addedGaussians": 8360,
+  "refitGaussians": 12763,
+  "offsetMm": 0.3,
+  "headGaussians": 270504,
+  "seeThrough": {
+   "right": {
+    "before": 15.7,
+    "after": 2.1
+   },
+   "left": {
+    "before": 12.2,
+    "after": 1.6
+   }
+  },
+  "outside": {
+   "pixels": 1563386,
+   "maxChange": 1,
+   "over1": 0,
+   "featherPx": 10
+  }
+ },
+ "spzFidelity": {
+  "photocam": {
+   "all": {
+    "mean": 0.26,
+    "max": 50,
+    "over1Pct": 4.5,
+    "over4Pct": 0.41
+   },
+   "eyes": {
+    "mean": 0.91,
+    "max": 27,
+    "over1Pct": 16.3,
+    "over4Pct": 2.21
+   }
+  },
+  "close0": {
+   "all": {
+    "mean": 0.73,
+    "max": 64,
+    "over1Pct": 12.2,
+    "over4Pct": 1.11
+   },
+   "eyes": null
+  },
+  "close40": {
+   "all": {
+    "mean": 0.57,
+    "max": 84,
+    "over1Pct": 10.1,
+    "over4Pct": 1.06
+   },
+   "eyes": null
+  }
+ },
+ "gaussians": {
+  "oneObject": 262144,
+  "head": 262144,
+  "body": 262144,
+  "headEyes": 270504
+ },
+ "bytes": {
+  "spz": {
+   "body": 3814578,
+   "head-eyes": 3984662,
+   "head": 3884295,
+   "one-object": 3791903
+  },
+  "partsTotal": 111818601,
+  "plyTotal": 107525728
+ },
+ "viewer": {
+  "fovY": 22.28802856439975,
+  "anchors": {
+   "head": {
+    "center": [
+     -0.0401,
+     0.1278,
+     -1.3317
+    ],
+    "top": 0.264,
+    "bottom": -0.044
+   },
+   "body": {
+    "center": [
+     0.0349,
+     -0.103,
+     -1.2982
+    ],
+    "top": 0.0641,
+    "bottom": -0.2267
+   }
+  },
+  "layout": {
+   "head": {
+    "id": "woman-head",
+    "position": [
+     -0.021561223740054914,
+     0.10879267066570801,
+     -1.3623541774277619
+    ],
+    "quaternion": [
+     0.6520215873524307,
+     -0.07976396005512362,
+     0.7517932215333736,
+     -0.05755442953599095
+    ],
+    "scale": 0.3312639810289674,
+    "visible": true
+   },
+   "body": {
+    "id": "woman-body",
+    "position": [
+     0.039864622581515866,
+     -0.08981074484433633,
+     -1.335260658947345
+    ],
+    "quaternion": [
+     0.7430453741481277,
+     0.04211658950043024,
+     0.6669324611859598,
+     0.03620576007156289
+    ],
+    "scale": 0.4710875053279872,
+    "visible": true
+   },
+   "one": {
+    "position": [
+     0.043231042263354204,
+     0.01946513229697751,
+     -1.3654991099875247
+    ],
+    "quaternion": [
+     0.6946679164030535,
+     -0.04140988698259714,
+     0.7168745972040075,
+     -0.042573689808622486
+    ],
+    "scale": 0.49066600228468416
+   }
+  }
+ }
+}

@@ -1,0 +1,34 @@
+{
+  "photocam": {
+    "all": {
+      "mean": 0.26,
+      "max": 50,
+      "over1Pct": 4.5,
+      "over4Pct": 0.41
+    },
+    "eyes": {
+      "mean": 0.91,
+      "max": 27,
+      "over1Pct": 16.3,
+      "over4Pct": 2.21
+    }
+  },
+  "close0": {
+    "all": {
+      "mean": 0.73,
+      "max": 64,
+      "over1Pct": 12.2,
+      "over4Pct": 1.11
+    },
+    "eyes": null
+  },
+  "close40": {
+    "all": {
+      "mean": 0.57,
+      "max": 84,
+      "over1Pct": 10.1,
+      "over4Pct": 1.06
+    },
+    "eyes": null
+  }
+}

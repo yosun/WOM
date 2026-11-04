@@ -1,0 +1,14 @@
+[0.5s] right eye: eye surface at 1.2787 m (p5-p95 1.2756-1.2830); smoothing moves it by p50 0.09 / p90 0.24 mm; 90 px never reach half opacity
+[0.5s] left eye: eye surface at 1.3062 m (p5-p95 1.2970-1.3260); smoothing moves it by p50 0.20 / p90 0.80 mm; 47 px never reach half opacity
+[0.5s] layer: 8360 Gaussians (8360 along the surface, the rest facing the camera), -0.3 mm in front of the eye surface; head now 270504 Gaussians
+[0.9s] fit at 2x: 12763 Gaussians (8354 of them new), 295531 weights, lambda 0.02
+[1.0s] start: mean error inside the eyes 8.71/255
+[1.8s] iteration 250: mean error inside the eyes 1.24/255
+[2.6s] iteration 500: mean error inside the eyes 1.24/255
+[2.6s] wrote .scratch/idol-split/eyes/head-decal-s05.ply (18.39 MB)
+[3.0s] outside the eye regions (47076 px): change p99 0, max 1 at (861,206); 0 px change by more than 8/255
+[3.0s] 2x right eye: colour error 26.7 -> 0.9; detail correlation 0.31 -> 1.00; sharpness 510 -> 1264 (photo 1550); see-through 15.7% -> 2.1% (px over 20%: 1078 -> 0)
+[3.0s] 2x left eye: colour error 23.5 -> 1.6; detail correlation 0.37 -> 0.99; sharpness 508 -> 1083 (photo 1488); see-through 12.2% -> 1.6% (px over 20%: 599 -> 0)
+[3.3s] 1x right eye: colour error 26.5 -> 3.9; detail correlation 0.33 -> 0.98; sharpness 303 -> 658 (photo 1550); see-through 16.0% -> 2.8% (px over 20%: 1104 -> 0)
+[3.3s] 1x left eye: colour error 23.5 -> 4.3; detail correlation 0.38 -> 0.97; sharpness 307 -> 613 (photo 1488); see-through 12.4% -> 2.1% (px over 20%: 620 -> 0)
+[3.8s] done

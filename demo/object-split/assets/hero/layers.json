@@ -1,0 +1,152 @@
+{
+ "parts": {
+  "hair": {
+   "src": "assets/hero/part-hair.webp",
+   "rect": {
+    "x": 559,
+    "y": 12,
+    "w": 538,
+    "h": 432
+   },
+   "color": "#f2b85b"
+  },
+  "face": {
+   "src": "assets/hero/part-face.webp",
+   "rect": {
+    "x": 654,
+    "y": 128,
+    "w": 313,
+    "h": 329
+   },
+   "color": "#ff8b78"
+  },
+  "neck": {
+   "src": "assets/hero/part-neck.webp",
+   "rect": {
+    "x": 810,
+    "y": 359,
+    "w": 173,
+    "h": 223
+   },
+   "color": "#c792ea"
+  },
+  "ear": {
+   "src": "assets/hero/part-ear.webp",
+   "rect": {
+    "x": 930,
+    "y": 192,
+    "w": 46,
+    "h": 101
+   },
+   "color": "#f7e86b"
+  },
+  "headband": {
+   "src": "assets/hero/part-headband.webp",
+   "rect": {
+    "x": 772,
+    "y": 0,
+    "w": 188,
+    "h": 203
+   },
+   "color": "#ff5ea8"
+  },
+  "hand": {
+   "src": "assets/hero/part-hand.webp",
+   "rect": {
+    "x": 652,
+    "y": 344,
+    "w": 169,
+    "h": 150
+   },
+   "color": "#4cc2bb"
+  },
+  "dress": {
+   "src": "assets/hero/part-dress.webp",
+   "rect": {
+    "x": 486,
+    "y": 416,
+    "w": 875,
+    "h": 421
+   },
+   "color": "#5aa9ff"
+  },
+  "arm-left": {
+   "src": "assets/hero/part-arm-left.webp",
+   "rect": {
+    "x": 527,
+    "y": 438,
+    "w": 289,
+    "h": 465
+   },
+   "color": "#63d49c"
+  },
+  "arm-right": {
+   "src": "assets/hero/part-arm-right.webp",
+   "rect": {
+    "x": 702,
+    "y": 747,
+    "w": 677,
+    "h": 161
+   },
+   "color": "#a8e86b"
+  },
+  "head": {
+   "src": "assets/hero/part-head.webp",
+   "rect": {
+    "x": 562,
+    "y": 0,
+    "w": 534,
+    "h": 538
+   },
+   "color": "#ff8b78"
+  },
+  "body": {
+   "src": "assets/hero/part-body.webp",
+   "rect": {
+    "x": 488,
+    "y": 342,
+    "w": 889,
+    "h": 564
+   },
+   "color": "#4cc2bb"
+  },
+  "seam": {
+   "src": "assets/hero/part-seam.webp",
+   "rect": {
+    "x": 797,
+    "y": 502,
+    "w": 185,
+    "h": 36
+   },
+   "color": "#ffe066"
+  },
+  "jaw": {
+   "src": "assets/hero/part-jaw.webp",
+   "rect": {
+    "x": 686,
+    "y": 342,
+    "w": 128,
+    "h": 114
+   },
+   "color": "#ff5555"
+  }
+ },
+ "head": {
+  "src": "assets/hero/layer-head.webp",
+  "rect": {
+   "x": 509,
+   "y": -53,
+   "w": 641,
+   "h": 641
+  }
+ },
+ "body": {
+  "src": "assets/hero/layer-body.webp",
+  "rect": {
+   "x": 489,
+   "y": 343,
+   "w": 887,
+   "h": 562
+  }
+ }
+}

@@ -1,0 +1,11 @@
+angle   old holes   new holes   (interior see-through px at 640x512; fewer is better)
+ -40°        926       2055
+ -25°       1314       1929
+ -10°       1517       1628
+  10°       1212       1495
+  25°        745       1347
+  40°        615       1290
+  55°        724       1060
+  70°        907        770
+  85°        714       1015
+largest increase over the old object: 1129 px at -40°

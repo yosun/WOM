@@ -1,0 +1,309 @@
+{
+  "what": "The woman from the \"Beauty Counter Smile\" photo, split into a head and a body that were built, placed and corrected on their own.",
+  "made": "2026-11-04T02:22:36.505Z",
+  "worlds": {
+    "original": "mvzp2tur93987dde",
+    "headAndBody": "mw16xplr29532e14"
+  },
+  "jobs": {
+    "note": "Costs are read from the app's ledger (see cost/ledger-entries.json): IDOL jobs $0.10 / $0.10 / $0.10 (whole figure / head / body), SAM 3.1 $0.025 for 10 requests.",
+    "oneObject": "2a8a9922-4c71-5bd1-eb5b-bab21a92ee71",
+    "head": "bb6072dc-8274-6952-35bd-e811f127e347",
+    "body": "d9d3422a-0268-cc8d-0bb3-a99c6d0060e0",
+    "sam": {
+      "requests": 10,
+      "usd": 0.025,
+      "usdEach": 0.0025
+    },
+    "costUsd": {
+      "oneObjectIdol": 0.1,
+      "headIdol": 0.1,
+      "bodyIdol": 0.1,
+      "sam": 0.025,
+      "splitTotal": 0.225
+    },
+    "test1m": {
+      "jobId": "76e95fdd-67eb-9005-6994-04ae73941e15",
+      "usd": 0.1,
+      "gaussians": 1048576,
+      "plyBytes": 71303585
+    }
+  },
+  "seamBandPx": 28,
+  "coordinates": "Splat files are in IDOL's own frame. Apply the pose in placement/layout.json (position, quaternion [x y z w], uniform scale) to put a part where the photo has it, in a scene with the camera at the origin looking down -Z.",
+  "masks": {
+    "headPx": 186291,
+    "bodyPx": 342672,
+    "seamPx": 4627,
+    "jawPx": 889,
+    "womanPx": 524336,
+    "leftOverPx": 0
+  },
+  "files": [
+    {
+      "file": "photo/source.jpg",
+      "from": "data/worlds/mvzp2tur93987dde/source.jpg",
+      "what": "The original photo (1699x926).",
+      "bytes": 650944,
+      "sha256": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43"
+    },
+    {
+      "file": "sam-parts/hair.png",
+      "from": ".scratch/idol-split/masks/c1-0.png",
+      "what": "SAM 3.1 mask: hair, from the concept prompt \"head\".",
+      "bytes": 7307,
+      "sha256": "ac4e09696487e0de1b738944b951bf1e63f480fec68fe2e5ad243fc08c376e05"
+    },
+    {
+      "file": "sam-parts/face.png",
+      "from": ".scratch/idol-split/masks/part-face-0.png",
+      "what": "SAM 3.1 mask: face.",
+      "bytes": 5865,
+      "sha256": "b82b36975a954b344a357a0529f6583238f27eaf0a1696539ae01e1d43fb21ce"
+    },
+    {
+      "file": "sam-parts/neck.png",
+      "from": ".scratch/idol-split/masks/part-neck-0.png",
+      "what": "SAM 3.1 mask: neck.",
+      "bytes": 5460,
+      "sha256": "cb2eacb17680e59ced873f1801b012ac219cf07c6cc01f99dc8c47c11c952055"
+    },
+    {
+      "file": "sam-parts/ear.png",
+      "from": ".scratch/idol-split/masks/part-ear-0.png",
+      "what": "SAM 3.1 mask: ear.",
+      "bytes": 4980,
+      "sha256": "3e02e0541ae644866913f9d00ec8f75f1200690a9d663b71a7555aae9d79e60b"
+    },
+    {
+      "file": "sam-parts/headband.png",
+      "from": ".scratch/idol-split/masks/part-headband-0.png",
+      "what": "SAM 3.1 mask: pink bow headband.",
+      "bytes": 5352,
+      "sha256": "fb268b670d2451a1e9dbabacddaa47f849314692d90fb83098b3d059d2239f69"
+    },
+    {
+      "file": "sam-parts/hand.png",
+      "from": ".scratch/idol-split/masks/part-hand-1.png",
+      "what": "SAM 3.1 mask: the hand resting on her cheek.",
+      "bytes": 5227,
+      "sha256": "e9655ca57e1fb45ebbf5686f433526b1e2c03f3efff28288d105a261698c3340"
+    },
+    {
+      "file": "sam-parts/dress.png",
+      "from": ".scratch/idol-split/masks/part-dress-0.png",
+      "what": "SAM 3.1 mask: dress.",
+      "bytes": 8340,
+      "sha256": "47a6fd86049ddbd8aa85777fe59e7a91270fc0ffb09789fc225d10661fcdd4e9"
+    },
+    {
+      "file": "sam-parts/arm-left.png",
+      "from": ".scratch/idol-split/masks/part-arm-0.png",
+      "what": "SAM 3.1 mask: the arm raised to her cheek (viewer's left).",
+      "bytes": 6206,
+      "sha256": "d4731be8bb14b886a4d8d3a97f3b3c9dcc49a54b127b9c5ff1812276c43c47bb"
+    },
+    {
+      "file": "sam-parts/arm-right.png",
+      "from": ".scratch/idol-split/masks/part-arm-1.png",
+      "what": "SAM 3.1 mask: the arm along the counter.",
+      "bytes": 5294,
+      "sha256": "c095165bff4b10e03d0df9fa749478af63c6c20e5302e09b3fe8a1d93b81943c"
+    },
+    {
+      "file": "split/head-mask.png",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-head/mask.png",
+      "what": "Head as visible in the photo, including the overlap band below the neck cut. The placement is fitted to this.",
+      "bytes": 6779,
+      "sha256": "ed8455770292a5f62258a4e546e99683a615df8c493cd8765492f3a387fbe0c4"
+    },
+    {
+      "file": "split/body-mask.png",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-body/mask.png",
+      "what": "Body as visible in the photo (torso, arms, the hand in front of the jaw), including the overlap band above the neck cut. The placement is fitted to this.",
+      "bytes": 7084,
+      "sha256": "03a922075baa13293640a90878e2b0a51addf92d219316beff5a3893d4fcebac"
+    },
+    {
+      "file": "split/head-cutout-mask.png",
+      "from": ".scratch/idol-split/parts/head/mask-cutout.png",
+      "what": "Head mask plus the patch of jaw the hand hides; the head cutout was built from this.",
+      "bytes": 6778,
+      "sha256": "c7507254e0341895e07feb4a9737a1651a3576f94960f4fb0b5c40c3f92ed725"
+    },
+    {
+      "file": "split/head-cutout.png",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-head/cutout.png",
+      "what": "What the 3D model received for the head (641x641, transparent background, native photo pixels).",
+      "bytes": 558463,
+      "sha256": "3c944e3b19b8f7d8b52273eed91759764b27ed7861f4da0d82a4172fc338cf6e"
+    },
+    {
+      "file": "split/body-cutout.png",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-body/cutout.png",
+      "what": "What the 3D model received for the body (1024x1024, transparent background).",
+      "bytes": 988651,
+      "sha256": "84292dda80977014c207564e24969838218a02d0deb200445e2ab3212e84ce83"
+    },
+    {
+      "file": "one-object/cutout.png",
+      "from": "data/worlds/mvzp2tur93987dde/objects/smiling-woman-in-pink-un/cutout.png",
+      "what": "What the 3D model received for the whole figure in the original pipeline (1024x1024, completed on white).",
+      "bytes": 1552336,
+      "sha256": "d0c5b4052a4fe8f1d94cf097a27aa38572f60dfa939d65746d703c1511946fcd"
+    },
+    {
+      "file": "one-object/mask.png",
+      "from": "data/worlds/mvzp2tur93987dde/objects/smiling-woman-in-pink-un/mask.png",
+      "what": "The whole-figure mask (the union the head and body masks partition).",
+      "bytes": 7853,
+      "sha256": "e18cc525d233909660e8e6c954ce21903e04c1c383a1f3923e5d5fb08a752547"
+    },
+    {
+      "file": "split/seam-band.png",
+      "from": "derived",
+      "what": "Where the head and body masks overlap: a band across the neck up to 28 px tall (4,627 px in all).",
+      "bytes": 4811,
+      "sha256": "e4420505c804bc07744b73d151dec253293e70cffc98ed17062815c0e9517ff2"
+    },
+    {
+      "file": "split/jaw-fill.png",
+      "from": "derived",
+      "what": "The patch of jaw hidden by the hand, filled with skin from the visible face in the head cutout.",
+      "bytes": 4988,
+      "sha256": "192ebeef6be30baa10e10146d6c7eaa9219cc5e6e586e507d36c02dd30dbd9f3"
+    },
+    {
+      "file": "splats/ply/one-object.idol.ply",
+      "from": "data/worlds/mvzp2tur93987dde/objects/smiling-woman-in-pink-un/idol/model.ply",
+      "what": "IDOL output for the whole figure (262,144 Gaussians). The original pipeline's result.",
+      "gaussians": 262144,
+      "bytes": 17826208,
+      "sha256": "3516a09848809b4a58295d92514c397608325cd2c64d0919070f5745f6b7b149"
+    },
+    {
+      "file": "splats/ply/head.idol-raw.ply",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-head/idol/model.raw.ply",
+      "what": "IDOL output for the head, untouched (262,144 Gaussians).",
+      "gaussians": 262144,
+      "bytes": 17826208,
+      "sha256": "4ecb72cc8d290a4366a729cefc08ec38b36a25d4dbaedbde509008b27aff4909"
+    },
+    {
+      "file": "splats/ply/body.idol-raw.ply",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-body/idol/model.raw.ply",
+      "what": "IDOL output for the body, untouched (262,144 Gaussians).",
+      "gaussians": 262144,
+      "bytes": 17826208,
+      "sha256": "d1f4a4791085dacb5df699aab525f7826c795865d864212e46740966d8a387d7"
+    },
+    {
+      "file": "splats/ply/head.aligned.ply",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-head/idol/model.ply",
+      "what": "Head after the pixel alignment (Gaussians moved sideways in the photo's view, depth unchanged).",
+      "gaussians": 262144,
+      "bytes": 17826208,
+      "sha256": "790ce9df0f5282330fbaae954f8714dd1c32a57190846c3420202501ccd66206"
+    },
+    {
+      "file": "splats/ply/body.aligned.ply",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-body/idol/model.ply",
+      "what": "Body after the pixel alignment.",
+      "gaussians": 262144,
+      "bytes": 17826208,
+      "sha256": "bab0aa00f73e015ea86f5f6b81a894ecbbe1ef4a1c97a8b20d2a88da8b1b7f1a"
+    },
+    {
+      "file": "splats/ply/head.aligned-eyes.ply",
+      "from": "data/worlds/mw16xplr29532e14/objects/woman-head/idol/model-eyes.ply",
+      "what": "Aligned head with the eye corrector: a layer of 8,360 Gaussians on the eye surface and refitted colours around the eyes (270,504 Gaussians).",
+      "gaussians": 270504,
+      "bytes": 18394688,
+      "sha256": "3d6d111002176e94e33383b8f4dd3a92a02b058ccef1215d75eccf927d6420e3"
+    },
+    {
+      "file": "cost/ledger-entries.json",
+      "from": "data/ledger.jsonl (selected lines)",
+      "what": "The ledger entries behind every dollar figure on the page: the three IDOL jobs, the SAM calls and the 1M-Gaussian test.",
+      "bytes": 2005,
+      "sha256": "e9675f5246c1ed4aa2357ae1ae6400a41479881e89c76b53dae5290ca1cdc134"
+    },
+    {
+      "file": "tests/1m-gaussians-eye-comparison.jpg",
+      "from": ".scratch/idol-1m/compare-right-eye-6x.jpg",
+      "what": "The 1,048,576-Gaussian test, right eye at 6x: the photo, the 262,144-Gaussian render and the 1,048,576-Gaussian render. The eye stays smeared.",
+      "bytes": 89952,
+      "sha256": "99a637fa968b9ebb677ceaf5e4e5c130d453b5d9e8c33ec7331df111e7fd32a7"
+    },
+    {
+      "file": "placement/fit-result.json",
+      "from": ".scratch/idol-split/fit-result.json",
+      "what": "Photometric fit: pose of the head and body (the alignment is applied on top of these).",
+      "bytes": 1890,
+      "sha256": "7d0433d2cf1b04c1c5b44ea7dabf62df4f951587e5fb06d1357b09f0f41a87e8"
+    },
+    {
+      "file": "placement/layout.json",
+      "from": "data/worlds/mw16xplr29532e14/layout.json",
+      "what": "Final poses used by the viewer (three.js coordinates, camera at the origin looking down -Z).",
+      "bytes": 736,
+      "sha256": "67afa32e389a7cc3b9b6754e87770205a1a32a213b5bf2538016adf80ea7860d"
+    },
+    {
+      "file": "placement/silhouette-fit-poses.json",
+      "from": ".scratch/idol-split/sets-baseline.json",
+      "what": "Poses the pipeline's own silhouette fitter chose (old single woman, and the head and body before alignment).",
+      "bytes": 1196,
+      "sha256": "3ab1a852cc095e96f7c7a4eef70b238cac5291d6dff92f58e76ee6ad10e16f30"
+    },
+    {
+      "file": "placement/scene.json",
+      "from": "data/worlds/mw16xplr29532e14/scene.json",
+      "what": "The head+body world's scene (camera, Marble world, the other objects).",
+      "bytes": 342412,
+      "sha256": "f705e884a549e96b3d41bc440cc8d9f07fa5f28c0a45645b8382ad8e7db01d40"
+    },
+    {
+      "file": "placement/measurements/eye-corrector.txt",
+      "from": ".scratch/idol-split/eyes/decal-s05.log",
+      "what": "The eye corrector's own log: Gaussians added and refitted, see-through before and after, change outside the eyes.",
+      "bytes": 1529,
+      "sha256": "25ede45c0d7a14c1e006a07ea86679840a008bf5ea48317d2e51498538d55704"
+    },
+    {
+      "file": "placement/measurements/m2-feature-shifts.json",
+      "from": "measurement",
+      "what": "How far each feature lands from the photo's (px), for the one object, the head and body with the silhouette fit, and the photometric fit with and without the alignment.",
+      "bytes": 5937,
+      "sha256": "cd2293827b096e14f390dad9d40215495c3b44b08a275cba8f8d9e58bcf92bc3"
+    },
+    {
+      "file": "placement/measurements/m5-feature-shifts.json",
+      "from": "measurement",
+      "what": "The same for the final alignment, with and without the seam term.",
+      "bytes": 2989,
+      "sha256": "012d371e5858dc446141d4a1b68ed9823b7d6be7e672b93a961d541ffcd15493"
+    },
+    {
+      "file": "placement/measurements/side-gaps.txt",
+      "from": "measurement",
+      "what": "See-through pixels inside her outline from camera angles around her: one object against the aligned split (640x512 views).",
+      "bytes": 402,
+      "sha256": "eda96c42ab6b64ee7c3c017b9d9f47e548eb16cb78cbc5153a4c07119c1ee260"
+    },
+    {
+      "file": "placement/measurements/spz-fidelity.json",
+      "from": "measurement",
+      "what": "The same figures as spz-fidelity.txt, for the page to read.",
+      "bytes": 512,
+      "sha256": "f2442c9be70a8deac55fb9f03928c928128688f5494559dc3512e22d9cc4e337"
+    },
+    {
+      "file": "placement/measurements/spz-fidelity.txt",
+      "from": "measurement",
+      "what": "How much the SPZ conversion changes what you see: Spark renders of the PLY parts against the SPZ files, from three cameras, over the whole frame and the eye regions.",
+      "bytes": 595,
+      "sha256": "925f4f9413a21a0b13fa934c73a5305a98544461d68e05a813bb15ed756ef6ca"
+    }
+  ]
+}

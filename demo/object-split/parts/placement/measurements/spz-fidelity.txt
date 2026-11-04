@@ -1,0 +1,7 @@
+Spark renders of the full-quality PLY parts against the SPZ files the page loads (head with eye corrector + body).
+Differences are in 0-255 per colour value; "over N" is the share of values that differ by more than N.
+
+the photo's own camera (1699x926): whole frame mean 0.26, max 50, over 1: 4.5%, over 4: 0.41%
+                                  eye regions mean 0.91, max 27, over 1: 16.3%, over 4: 2.21%
+close up, straight on (1699x926): whole frame mean 0.73, max 64, over 1: 12.2%, over 4: 1.11%
+close up, 40° around (1699x926): whole frame mean 0.57, max 84, over 1: 10.1%, over 4: 1.06%
