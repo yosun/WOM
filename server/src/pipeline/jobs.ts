@@ -72,7 +72,10 @@ export async function runAi3dJob(opts: {
   };
   await world.update(() => slot.set(finalRef));
   if (charged) {
-    await world.addCost({ label: opts.label, usd: charged, provider: 'ai3d', estimated: chargedUsd(done) === undefined });
+    await world.addCost(
+      { label: opts.label, usd: charged, provider: 'ai3d', estimated: chargedUsd(done) === undefined },
+      { model: opts.body.model, jobId: done.id },
+    );
   }
   if (done.status !== 'succeeded') {
     if (done.status === 'submission_unknown') {

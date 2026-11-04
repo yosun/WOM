@@ -95,7 +95,7 @@ app.post('/api/worlds', async (c) => {
     return c.json({ error: 'That file could not be read as an image. Use JPEG, PNG or WebP.' }, 415);
   }
   if (width < 256 || height < 256) return c.json({ error: 'The photo must be at least 256 pixels on each side.' }, 400);
-  const world = await createWorld({ options, width, height });
+  const world = await createWorld({ options, width, height, owner: { id: 'local' } });
   await writeFileAtomic(world.file('source.jpg'), jpeg);
   await writeFileAtomic(world.file('thumb.jpg'), thumb);
   world.log(`Created from "${file.name}" (${width}×${height}) with ${JSON.stringify(options)}`);

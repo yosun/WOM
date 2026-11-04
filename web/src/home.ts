@@ -12,7 +12,7 @@ const STATUS_LABEL: Record<WorldSummary['status'], string> = {
 export function renderHome(root: HTMLElement) {
   clear(root);
   let file: File | null = null;
-  let options: WorldOptions = { maxObjects: 5, plannerModel: 'muse-spark-1.3', meshModel: 'triposplat', worldModel: 'worldlabs', completeOccluded: true };
+  let options: WorldOptions = { maxObjects: 5, plannerModel: 'muse-spark-1.3', meshModel: 'triposplat', worldModel: 'worldlabs', depthModel: 'moge2', completeOccluded: true, splitPeople: false, placementAgents: [] };
 
   const preview = h('img.drop-preview', { alt: '' });
   const dropHint = h('div.drop-hint', h('strong', 'Drop a photo here'), h('span', 'or click to choose a JPEG, PNG or WebP'));
