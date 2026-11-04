@@ -1,0 +1,37 @@
+{
+  "mode": "test",
+  "packs": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "usd": 10,
+      "credits": 1000,
+      "paymentLink": "plink_1UY2onGYmPB3EUhJHN84H1T6",
+      "url": "https://buy.stripe.com/test_00w9AT7a0exC40fg5j3VC00"
+    },
+    {
+      "id": "explorer",
+      "name": "Explorer",
+      "usd": 25,
+      "credits": 2750,
+      "paymentLink": "plink_1UY2ooGYmPB3EUhJ8X75Cqmv",
+      "url": "https://buy.stripe.com/test_eVq6oH9i8exCcwLcT73VC01"
+    },
+    {
+      "id": "creator",
+      "name": "Creator",
+      "usd": 50,
+      "credits": 6000,
+      "paymentLink": "plink_1UY2opGYmPB3EUhJqnOXF19O",
+      "url": "https://buy.stripe.com/test_14AcN5amc75afIX7yN3VC02"
+    },
+    {
+      "id": "studio",
+      "name": "Studio",
+      "usd": 100,
+      "credits": 13000,
+      "paymentLink": "plink_1UY2orGYmPB3EUhJdFgVZo7z",
+      "url": "https://buy.stripe.com/test_8x214neCs3SY9kz06l3VC03"
+    }
+  ]
+}
