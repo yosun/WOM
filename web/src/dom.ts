@@ -1,5 +1,5 @@
 // Tiny DOM helpers: h('div.card', { onclick }, children).
-type Child = Node | string | number | null | undefined | false | Child[];
+export type Child = Node | string | number | null | undefined | false | Child[];
 type Props = Record<string, unknown> & { style?: Partial<CSSStyleDeclaration> | string; dataset?: Record<string, string> };
 
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K | `${K}.${string}` | `${K}#${string}`, props?: Props | Child, ...children: Child[]): HTMLElementTagNameMap[K] {
