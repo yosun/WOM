@@ -1,8 +1,9 @@
 // Credits: what a person spends to build a world. The balance and every change to it live in Neon (db/migrations/001_init.sql):
 // users.credits, the credit_ledger, and the functions that change them. The API's database role can only spend its own
-// credits (wom.credit_debit) and redeem a promo code (wom.redeem_promo). Granting credits is for the system role.
+// credits (wom.credit_debit), give back what a world holds (wom.credit_release) and redeem a promo code (wom.redeem_promo).
+// Granting credits is for the system role.
 import { createHash, randomInt } from 'node:crypto';
-import { asCaller, asSystem, isCheckViolation, isUniqueViolation, type Caller } from './db.ts';
+import { asCaller, asSystem, isCheckViolation, isUniqueViolation, type Caller, type Db } from './db.ts';
 
 export class CreditsError extends Error {
   readonly status: 400 | 402 | 429;
@@ -37,13 +38,91 @@ export async function holdForWorld(caller: Caller, worldId: string, amount: numb
   }
 }
 
-/** Give back credits taken for a world, never more than were taken. Asking twice gives back once. */
-export async function releaseForWorld(caller: Caller, worldId: string, amount: number): Promise<number> {
-  const r = await asCaller(caller, (db) => db.query<{ balance: string }>(
-    'select wom.credit_release($1, $2::bigint, $3) as balance',
-    [`world:${worldId}`, amount, `release:${worldId}:1`],
+// What a world holds is worked out from the ledger, never remembered: credits taken for it (kind 'hold') minus credits given
+// back (kind 'release'), under ref `world:<id>`. A world is held in rounds. Round 1 is the hold made when it is created. If the
+// build fails the round is released, and a retry then holds the price again as round 2, and so on. Hold n and release n
+// share a number, which is what makes each of them idempotent on its own.
+interface Held {
+  /** Credits taken for the world and not yet given back. */
+  held: number;
+  /** How many times the world has been held, and so the number of the round in progress or just ended. */
+  rounds: number;
+  /** How many of those rounds have been given back. */
+  released: number;
+}
+
+async function heldFor(db: Db, userId: string, worldId: string): Promise<Held> {
+  const r = await db.query<{ held: string; rounds: string; released: string }>(
+    `select coalesce(-sum(delta) filter (where kind = 'hold'), 0) - coalesce(sum(delta) filter (where kind = 'release'), 0) as held,
+            count(*) filter (where kind = 'hold') as rounds,
+            count(*) filter (where kind = 'release') as released
+       from credit_ledger where user_id = $1 and ref = $2`,
+    [userId, `world:${worldId}`],
+  );
+  return { held: Number(r.rows[0].held), rounds: Number(r.rows[0].rounds), released: Number(r.rows[0].released) };
+}
+
+/**
+ * Hold the price of a world again before a retry, when its credits were given back because its build failed. Does nothing for a
+ * world that still holds its credits (a retry after a partial build is free) and for one that never held any (an administrator's,
+ * or one made before credits existed). Throws a CreditsError (402) when the person has fewer credits, and takes nothing.
+ */
+export async function holdForRetry(caller: Caller, worldId: string, amount: number): Promise<void> {
+  try {
+    await asCaller(caller, async (db) => {
+      const s = await heldFor(db, caller.id, worldId);
+      if (s.held > 0 || s.released === 0) return;
+      await db.query('select wom.credit_debit($1::bigint, $2, $3)', [amount, `world:${worldId}`, `hold:${worldId}:${s.rounds + 1}`]);
+    });
+  } catch (err) {
+    if (isCheckViolation(err)) throw new CreditsError(`A world costs ${amount} credits.`, 402, await balanceOf(caller).catch(() => 0));
+    throw err;
+  }
+}
+
+/**
+ * Give back everything a world holds. Safe to call twice, from two places, or after a restart: a world that holds nothing (an
+ * administrator's, or already given back) gives back nothing. Answers how many credits came back. `caller` is the world's owner,
+ * because the credits are theirs.
+ */
+export async function refundWorld(caller: Caller, worldId: string): Promise<number> {
+  try {
+    return await asCaller(caller, async (db) => {
+      const s = await heldFor(db, caller.id, worldId);
+      if (s.held <= 0) return 0;
+      await db.query('select wom.credit_release($1, $2::bigint, $3)', [`world:${worldId}`, s.held, `release:${worldId}:${s.rounds}`]);
+      return s.held;
+    });
+  } catch (err) {
+    // Two refunds at once: the database lets one through and tells the other there is nothing left to give back.
+    if (err instanceof Error && /cannot release more than was charged/.test(err.message)) return 0;
+    throw err;
+  }
+}
+
+/**
+ * Give back the credits of every world that ended `failed` and still holds them. A failed build gives its credits back as it
+ * fails, so this only finds what that missed: a restart or a database error in between, and builds that failed before credits
+ * were given back at all. Run it before the server takes requests, so that it cannot meet a retry halfway. Safe to run any
+ * number of times. System role (it reads every world), though each refund is made as the world's owner.
+ */
+export async function refundFailedWorlds(): Promise<{ worlds: number; credits: number }> {
+  const found = await asSystem((db) => db.query<{ id: string; owner_id: string }>(
+    `select w.id, w.owner_id from worlds w
+      where w.status = 'failed'
+        and (select coalesce(-sum(l.delta) filter (where l.kind = 'hold'), 0) - coalesce(sum(l.delta) filter (where l.kind = 'release'), 0)
+               from credit_ledger l where l.user_id = w.owner_id and l.ref = 'world:' || w.id) > 0`,
   ));
-  return Number(r.rows[0].balance);
+  let worlds = 0;
+  let credits = 0;
+  for (const row of found.rows) {
+    const back = await refundWorld({ id: row.owner_id, role: 'user' }, row.id);
+    if (back > 0) {
+      worlds += 1;
+      credits += back;
+    }
+  }
+  return { worlds, credits };
 }
 
 // ---------------------------------------------------------------- promo codes

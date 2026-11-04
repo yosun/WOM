@@ -204,8 +204,11 @@ Someone who only looks gets what the viewer draws and nothing else. By path allo
 
 With `WOM_STORE=postgres`, building a world costs a person who is not an administrator `WOM_WORLD_CREDITS` credits (500 by default). An administrator, and a server with no database, build for free.
 
-- The credits are taken when the upload is accepted, before anything that costs money starts, and keyed by the world, so two uploads at once cannot spend the same credits. A balance that is too low answers 402 with the balance and the price. A retry of a failed world does not charge again.
-- **Not refunded automatically.** If a build fails, or a world is deleted, the credits stay spent. `wom.credit_release` and `releaseForWorld` (`server/src/credits.ts`) exist for giving them back, but nothing calls them yet.
+- The credits are taken when the upload is accepted, before anything that costs money starts, and keyed by the world, so two uploads at once cannot spend the same credits. A balance that is too low answers 402 with the balance and the price.
+- **A failed build is refunded.** A build that ends `failed` (a step it cannot do without stopped it, so there is no world to look at) gives its credits back at once, and the build log says so. A world that ends `partial` keeps them: it can be looked at, and retrying its failed parts is free.
+- **A retry of a refunded world holds the price again first**, and answers 402 with the balance if it is too low, so a failed build cannot be retried for free. Retrying a world that still holds its credits takes nothing more, and administrators are never charged.
+- Deleting a world that failed or never started gives back whatever it still holds. When the server starts, before it takes requests, it also gives back the credits of any failed world that still holds them: a crash between the failure and the refund, or a build that failed before refunds existed.
+- Each charge and each refund is a row in `credit_ledger` (`hold` and `release`, numbered by round: hold 1, release 1, hold 2 on a retry, and so on). What a world holds is always worked out from those rows, so a refund can be asked for any number of times and gives back at most what was taken.
 - **Promo codes** look like `WOM-ABCD-EF23`, are redeemed once per person on the home page, and only their hash is stored. Make them with `npm run promo -- --credits 1500 --count 25 --days 45 --note judges`. On production, run `node --env-file=.env.main scripts/promo.ts` with the same options. The codes are printed once and nowhere else. A person gets 8 tries per 10 minutes.
 - **Packs** are bought through Stripe Payment Links, listed in `server/src/packs.json` (four packs, $10 to $100, test mode today). The server holds no Stripe API key. It sends the buyer to the link with their user id attached, and Stripe tells it who paid through a signed webhook. The only secret is that endpoint's signing secret, `STRIPE_WEBHOOK_SECRET`, and packs are offered only while it is set. Credits are added once per checkout, a payment of the wrong amount answers 500 so Stripe retries, and a test event never adds credits on a live site. `node scripts/stripe-packs.mjs` makes the packs (test mode only, through the Stripe CLI you are logged in with). The webhook is an endpoint for `checkout.session.completed` and `checkout.session.async_payment_succeeded` at `/api/stripe/webhook`; put its signing secret in `STRIPE_WEBHOOK_SECRET`. Locally, `stripe listen --forward-to localhost:8787/api/stripe/webhook` prints one.
 
@@ -522,7 +525,7 @@ server/src/
   auth.ts               Clerk: verifies the session cookie, serves the publishable key
   access.ts             who is asking, who may do what (RULES), what a shared world exposes
   users.ts              people and their handles
-  credits.ts            balances, holding credits for a world, promo codes
+  credits.ts            balances, holding and refunding the credits of a world, promo codes
   stripe.ts             credit packs (packs.json) and the signed webhook that adds the credits
   share.ts              the tags a pasted link to a shared world shows
   clients/meta.ts       Muse Spark/Wonder chat, SAM 3.1, Muse Image

@@ -10,7 +10,7 @@ import { streamSSE } from 'hono/streaming';
 import sharp from 'sharp';
 import { accountBalanceUsd } from './clients/ai3d.ts';
 import { DEFAULT_OPTIONS, HOST, PORT, PUBLIC_ORIGIN, SIGN_IN_REQUIRED, STORE, WEB_DIST, WORLD_CREDITS, keysConfigured, normalizeOptions, retryOptions } from './config.ts';
-import { balanceOf, CreditsError, holdForWorld, mintPromo, redeemPromo } from './credits.ts';
+import { balanceOf, CreditsError, holdForRetry, holdForWorld, mintPromo, redeemPromo, refundFailedWorlds, refundWorld } from './credits.ts';
 import { handleWebhook, packsFor, STRIPE_TEST_MODE } from './stripe.ts';
 import { guard, identify, levelOf, publicManifest, type AppEnv } from './access.ts';
 import { authConfig, clerkConfigured } from './auth.ts';
@@ -233,7 +233,14 @@ app.post('/api/worlds', async (c) => {
       throw err;
     }
   }
-  await saveUpload(world, photo, { frameIndex, input, name, source });
+  try {
+    await saveUpload(world, photo, { frameIndex, input, name, source });
+  } catch (err) {
+    // Nothing was built, so nothing is owed. If the credits cannot be given back, the world is kept so that they can still be found.
+    if (metered) await refundWorld({ id: user.id, role: user.role }, world.id);
+    await deleteWorld(world.id);
+    throw err;
+  }
   const { width, height } = source;
   const held = [photo.frames.length > 1 ? `${photo.frames.length} frames (using ${frameIndex + 1})` : '', photo.aux.length ? `camera ${photo.aux.map((a) => a.type).join(', ')}` : ''].filter(Boolean).join('; ');
   world.log(`Created from "${name}" (${photo.kind}, ${width}×${height}${held ? `; ${held}` : ''}); lens: ${cameraLine(photo.camera)}; options ${JSON.stringify(options)}`);
@@ -429,6 +436,17 @@ app.post('/api/worlds/:id/retry', async (c) => {
   const world = await requireWorld(c);
   if (!world) return c.json({ error: 'not found' }, 404);
   if (isRunning(world.id)) return c.json({ error: 'This world is still being built.' }, 409);
+  // A build that failed gave its credits back. Hold them again before anything runs, or say there are too few. A retry of a
+  // partial build is free, because it still holds them, and so is an administrator's.
+  const user = c.get('user')!;
+  if (STORE === 'postgres' && user.role !== 'admin') {
+    try {
+      await holdForRetry({ id: user.id, role: user.role }, world.id, WORLD_CREDITS);
+    } catch (err) {
+      if (err instanceof CreditsError) return c.json({ error: `Retrying costs ${WORLD_CREDITS} credits again, because they were given back when the build failed. You have ${err.balance ?? 0}.`, credits: true, balance: err.balance ?? 0, needed: WORLD_CREDITS }, 402);
+      throw err;
+    }
+  }
   // Optionally switch models for the parts that are retried (e.g. a different mesh model).
   const body = (await c.req.json().catch(() => ({}))) as Partial<WorldOptions>;
   // Worlds made before an option existed keep their old behaviour on a retry unless asked otherwise (see retryOptions).
@@ -713,6 +731,11 @@ app.delete('/api/worlds/:id', async (c) => {
   const world = await requireWorld(c);
   if (!world) return c.json({ error: 'not found' }, 404);
   if (isRunning(world.id)) return c.json({ error: 'This world is still being built.' }, 409);
+  // A world that never produced anything owes nothing. Normally its credits are already back; this is for when giving them back
+  // failed, because once the world is gone nothing could find them. If it fails again the world stays, and so can be deleted later.
+  if (STORE === 'postgres' && (world.manifest.status === 'failed' || world.manifest.status === 'queued')) {
+    await refundWorld({ id: world.ownerId, role: 'user' }, world.id);
+  }
   await deleteWorld(world.id);
   return c.json({ ok: true });
 });
@@ -807,7 +830,13 @@ app.get('*', async (c) => {
 });
 
 /** Listen, and pick up the worlds a restart interrupted. */
-function start() {
+async function start() {
+  // Before the first request, so that it cannot meet a retry halfway: give back what failed builds still hold (see refundFailedWorlds).
+  if (STORE === 'postgres') {
+    await refundFailedWorlds()
+      .then((r) => { if (r.worlds) console.log(`[credits] gave back ${r.credits} credits for ${r.worlds} failed world(s)`); })
+      .catch((err) => console.error(`[credits] could not check failed worlds for credits to give back: ${errorMessage(err)}`));
+  }
   serve({ fetch: app.fetch, port: PORT, hostname: HOST }, (info) => {
     console.log(`WOM server listening on http://${info.address}:${info.port}`);
     const keys = keysConfigured();
@@ -845,4 +874,4 @@ async function resumeWorlds() {
 }
 
 // Only when this file is the program. Tests import `app` and call it without opening a port.
-if (import.meta.main) start();
+if (import.meta.main) void start();

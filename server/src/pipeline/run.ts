@@ -10,7 +10,8 @@ import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { uploadImage } from '../clients/ai3d.ts';
 import { toDataUrl } from '../clients/meta.ts';
-import { MAX_PARALLEL_MESH_JOBS } from '../config.ts';
+import { MAX_PARALLEL_MESH_JOBS, STORE } from '../config.ts';
+import { refundWorld } from '../credits.ts';
 import { maskFromPng, maskToPng } from '../geometry/mask.ts';
 import type { WorldHandle } from '../store.ts';
 import type { MeshModel, ObjectRecord, PlannedObject, PlannerModel, StepId } from '../types.ts';
@@ -473,6 +474,23 @@ async function runWorld(world: WorldHandle) {
     const msg = errorMessage(err);
     await world.update((m) => { m.status = 'failed'; m.error = msg; });
     world.log(`Pipeline stopped: ${msg}`);
+    await refundFailedBuild(world);
+  }
+}
+
+/**
+ * A build that ends `failed` made no world: a step it cannot do without stopped it. The credits it held go back to its owner.
+ * This comes after the status is saved, so that if the server stops in between, the check at start-up (credits.ts,
+ * refundFailedWorlds) finds a failed world that still holds its credits. A world that ends `partial` keeps them: it can be
+ * looked at, and retrying its failed parts is free. Retrying a failed world holds the price again first (the retry route).
+ */
+async function refundFailedBuild(world: WorldHandle) {
+  if (STORE !== 'postgres') return;
+  try {
+    const back = await refundWorld({ id: world.ownerId, role: 'user' }, world.id);
+    if (back > 0) world.log(`Gave back ${back.toLocaleString('en-US')} credits because the build failed. A retry holds them again.`);
+  } catch (err) {
+    world.log(`Could not give back the credits yet (${errorMessage(err)}). They are given back when the server next starts.`);
   }
 }
 
