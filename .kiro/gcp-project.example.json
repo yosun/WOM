@@ -1,0 +1,5 @@
+{
+  "projectId": "your-gcp-project-id",
+  "region": "us-central1",
+  "cloudRunService": "not-used"
+}
