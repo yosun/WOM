@@ -8,6 +8,15 @@ WOM reconstructs the important objects in a photograph, builds their surrounding
 
 **[Try WOM at wom.quest ↗](https://wom.quest)** · **[Create 3D from your photo](https://wom.quest/?create=1)** · **[Try WOMPar](https://wom.quest/wompar.html)** · **[Results & metrics](#results--metrics)** · **[Beat WOMPar](https://wom.quest/#/beat)**
 
+## Demo videos
+
+| Agentic 3D reconstruction | Raw WOM.quest demo |
+| --- | --- |
+| [![Watch: Agentic 3D reconstruction with measurable fidelity](https://i.ytimg.com/vi/gF15tvt23qQ/hqdefault.jpg)](https://www.youtube.com/watch?v=gF15tvt23qQ) | [![Watch: Raw WOM.quest demo](https://i.ytimg.com/vi/UCRMThRBJM8/hqdefault.jpg)](https://www.youtube.com/watch?v=UCRMThRBJM8) |
+| [Watch reconstruction with measurable fidelity ↗](https://www.youtube.com/watch?v=gF15tvt23qQ) | [Watch the raw demo ↗](https://www.youtube.com/watch?v=UCRMThRBJM8) |
+
+## How it works
+
 ![WOM technical pipeline with actual Sunny Garden source, SAM masks, clean plate, MoGe depth, mesh and Gaussian assets, Marble world, silhouette fitting, camera views and a verified bicycle repair.](docs/images/wom-technical-overview.png)
 
 [Full-resolution infographic](docs/images/wom-technical-overview.png) · [Evidence & reproducible source](docs/images/wom-technical-assets/README.md) · [Watch the recorded agent replay](https://wom.quest/u/yosun/mvxixlbz34cbfb22/agents)
