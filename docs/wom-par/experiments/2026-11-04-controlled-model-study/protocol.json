@@ -1,0 +1,722 @@
+{
+  "schema": "wom-controlled-placement-study/1",
+  "id": "20261105-002209",
+  "preparedAt": "2026-11-05T00:22:41.329Z",
+  "models": [
+    "muse-spark-1.3",
+    "muse-wonder-1.0",
+    "gpt-6.1-terra",
+    "gpt-6.1-sol"
+  ],
+  "trials": 3,
+  "maxUsd": 20,
+  "seed": 20261105,
+  "gitCommit": "7aab6af0aa2be7b6cd35952bf8b05e9f3fe9b756",
+  "codeHashes": {
+    "scripts/study-models.ts": "bc3b9c3d36df67046678b516dbbf3e67eb7d9aac2f6124fd6477416dc91a612f",
+    "scripts/model-study-analysis.ts": "bca55b8f294875cfc64239aec1cdfc59a100f3fbfe06134a6c3f9e1899518772",
+    "server/src/bench/llm.ts": "0df59f20c8dc7275b54215c955ed5d346cb887fe33404b43d682f7d997681147",
+    "server/src/bench/case.ts": "c213a49a7fe92dd41ee4e0b542aea58bfeea74d97c73eb1e3be280f81d9e9b58",
+    "server/src/bench/context.ts": "5477da0d47396385b13e7ff2fc95734059caad8c2b3e8e7e79b4eeb1942b6b6b",
+    "server/src/bench/metrics.ts": "5f707faa1909f94ea8de1f8dfc3c0b2c5230a53c28198a676e28e5658913f827",
+    "server/src/geometry/fit.ts": "34a28d993f64a5590d3ce708da8a8819f2540df2f79f625909291e576eebd4a1",
+    "server/src/geometry/raster.ts": "603bb5645ce64e19992fdf6d9e087a7f6d3b63229f56af72e23da6cd833848b2",
+    "server/src/clients/meta.ts": "030fcf057e91ee7f980aff5e26507ec4c0dd56460a8a9a4a4c9b951be79bb3fb",
+    "server/src/clients/openai.ts": "314ea21e67b26a9d4b5eb61abf8fa3ad7e828564a9f93faca4e9bbb493cd69a2",
+    "server/src/clients/llm.ts": "1243d761e7981e9c9027892aa356598fd474322c99fa3dd1eb95b0400f2715a5",
+    "server/src/agents/placement.ts": "49aea5a6ebf42d56f611d053b0c91d7d92fdc4f8f27ab84e57a6b0d6b963aba6"
+  },
+  "cases": [
+    {
+      "id": "mvxixlbz34cbfb22/golden-retriever/idol@moge3",
+      "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "object": "golden-retriever",
+      "contact": "floor",
+      "maskVersion": 1,
+      "sourceSha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "photoSha256": "07affb741f83b9d6537a3c436e9d7d96ebe0e6008d5a5ef0c8c9b9c63d085219",
+      "turntableSha256": "34c9d0920f688340571fa48e7a33ee95530c3dc066ea2c65f880986bd169a2e9",
+      "assetSha256": "eb54b1b0cbee7b0074e9cf7cd514782c2e8282cf903446cedf8f402b3e489b88",
+      "maskSha256": "80ed06ea3157e28706c808b71e3818ccfdc3bcb8701b88566f3aa925dc4b4b67",
+      "baselineIou": 0.9296544187952466,
+      "toolIou": 0.9296544187952466,
+      "inputDir": "inputs/mvxixlbz34cbfb22__golden-retriever",
+      "files": {
+        "data/worlds/mvxixlbz34cbfb22/source.jpg": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+        "data/worlds/mvxixlbz34cbfb22/objects/golden-retriever/mask.png": "1b6bed6a8073efa6196d14fdb81548d90b96c4f8cb7cc3072b24b894cb7b58c6",
+        "data/worlds/mvxixlbz34cbfb22/objects/golden-retriever/idol/model.ply": "eb54b1b0cbee7b0074e9cf7cd514782c2e8282cf903446cedf8f402b3e489b88",
+        "data/worlds/mvxixlbz34cbfb22/scene.json": "67c5c3d4ea88ae248570b6489596f7682694c56913ead6e1b74782ca37fe4c6d",
+        "data/worlds/mvxixlbz34cbfb22/manifest.json": "825a1abb2a9a905169a9a7bdda38dd4f4c599014931ea27b4e15743196616230",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/depth.exr": "a6592c42e1b88edba6ed0d0b704e809cebc0ce039ba210cbda70b8959ef9a595",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/normal.exr": "7ec505d0962dbd9f9b04e702c26e648a64636ddeb592791149716c99fbaae5cc",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/points.exr": "08b9e072b3b7099e32a0d0f58b8bc2d1817b4ea9e3a765fd9ee9cba3b39ed002"
+      }
+    },
+    {
+      "id": "mvxixlbz34cbfb22/red-vintage-bicycle/idol@moge3",
+      "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "object": "red-vintage-bicycle",
+      "contact": "floor",
+      "maskVersion": 1,
+      "sourceSha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "photoSha256": "860eb6625b6a782ecfa10fff01219886ee1df25084efca526ce75fcfc7ba696f",
+      "turntableSha256": "4c13f5778300c037f187421220b588803d1af551bde1390b6b4573bc04fd5be6",
+      "assetSha256": "ec5bccad0db55f6c80da10eb5312214d2b6fd5d5c3670baa76aaa5e7782f28c2",
+      "maskSha256": "5932796a9db720c7fa6972eea28baf8f177fa318670a3b89437f8c29e7cd21d0",
+      "baselineIou": 0.6956135252487264,
+      "toolIou": 0.6956135252487264,
+      "inputDir": "inputs/mvxixlbz34cbfb22__red-vintage-bicycle",
+      "files": {
+        "data/worlds/mvxixlbz34cbfb22/source.jpg": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+        "data/worlds/mvxixlbz34cbfb22/objects/red-vintage-bicycle/mask.png": "3040c37ecb9ac89759fabf7b82e941dd05876f476e3404aecf90d71bad0eae33",
+        "data/worlds/mvxixlbz34cbfb22/objects/red-vintage-bicycle/idol/model.ply": "ec5bccad0db55f6c80da10eb5312214d2b6fd5d5c3670baa76aaa5e7782f28c2",
+        "data/worlds/mvxixlbz34cbfb22/scene.json": "67c5c3d4ea88ae248570b6489596f7682694c56913ead6e1b74782ca37fe4c6d",
+        "data/worlds/mvxixlbz34cbfb22/manifest.json": "825a1abb2a9a905169a9a7bdda38dd4f4c599014931ea27b4e15743196616230",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/depth.exr": "a6592c42e1b88edba6ed0d0b704e809cebc0ce039ba210cbda70b8959ef9a595",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/normal.exr": "7ec505d0962dbd9f9b04e702c26e648a64636ddeb592791149716c99fbaae5cc",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/points.exr": "08b9e072b3b7099e32a0d0f58b8bc2d1817b4ea9e3a765fd9ee9cba3b39ed002"
+      }
+    },
+    {
+      "id": "mvxixlbz34cbfb22/wooden-garden-bench/idol@moge3",
+      "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "object": "wooden-garden-bench",
+      "contact": "floor",
+      "maskVersion": 1,
+      "sourceSha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "photoSha256": "af9760e9ad4c604344b5155f3ca13882e445aaddb1d85d50eecc485ad6d8c599",
+      "turntableSha256": "138df286a3044ce8189c6c5c44a627b9b614a80514ce8cdc1f28216a45674461",
+      "assetSha256": "c1b90bd5e10adfc76f0ba3ce2250941b64d0dd3acda046dc9a41e7daec504524",
+      "maskSha256": "7511693f4c532cc27d7f0629ce80113b3f8657c0c340bd96fdf26300a1856909",
+      "baselineIou": 0.7400584423834329,
+      "toolIou": 0.7513329893360853,
+      "inputDir": "inputs/mvxixlbz34cbfb22__wooden-garden-bench",
+      "files": {
+        "data/worlds/mvxixlbz34cbfb22/source.jpg": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+        "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/mask.png": "dae33b85585d9dca2962392c608a68fe56a1b265114ba2ff89291a4632ac5c16",
+        "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/idol/model.ply": "c1b90bd5e10adfc76f0ba3ce2250941b64d0dd3acda046dc9a41e7daec504524",
+        "data/worlds/mvxixlbz34cbfb22/scene.json": "67c5c3d4ea88ae248570b6489596f7682694c56913ead6e1b74782ca37fe4c6d",
+        "data/worlds/mvxixlbz34cbfb22/manifest.json": "825a1abb2a9a905169a9a7bdda38dd4f4c599014931ea27b4e15743196616230",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/depth.exr": "a6592c42e1b88edba6ed0d0b704e809cebc0ce039ba210cbda70b8959ef9a595",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/normal.exr": "7ec505d0962dbd9f9b04e702c26e648a64636ddeb592791149716c99fbaae5cc",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/points.exr": "08b9e072b3b7099e32a0d0f58b8bc2d1817b4ea9e3a765fd9ee9cba3b39ed002"
+      }
+    },
+    {
+      "id": "mvxixlbz34cbfb22/potted-lemon-tree/idol@moge3",
+      "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "object": "potted-lemon-tree",
+      "contact": "floor",
+      "maskVersion": 1,
+      "sourceSha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+      "photoSha256": "696c5b478f773f044a601e0b1de45bab7f8bc96e848920b249d7b4d321438ee2",
+      "turntableSha256": "a2b91b2c1c144c8adab9f80e3cdd4df5794726ffd3c2b4504e76b44267f76d82",
+      "assetSha256": "fed1d3333a97682711524d485125e792f6396ddd5f235260dea01fe7358b4e87",
+      "maskSha256": "9bcfcc0b91cbdbbe6fad09ce7ed6297c31cbf84aa5b93307ef4856ab8eebbd77",
+      "baselineIou": 0.7988908347927612,
+      "toolIou": 0.8164302600472814,
+      "inputDir": "inputs/mvxixlbz34cbfb22__potted-lemon-tree",
+      "files": {
+        "data/worlds/mvxixlbz34cbfb22/source.jpg": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+        "data/worlds/mvxixlbz34cbfb22/objects/potted-lemon-tree/mask.png": "fe124ee2d95f191296fcdd53cdd728b53510523d489668e16ee6668704904a58",
+        "data/worlds/mvxixlbz34cbfb22/objects/potted-lemon-tree/idol/model.ply": "fed1d3333a97682711524d485125e792f6396ddd5f235260dea01fe7358b4e87",
+        "data/worlds/mvxixlbz34cbfb22/scene.json": "67c5c3d4ea88ae248570b6489596f7682694c56913ead6e1b74782ca37fe4c6d",
+        "data/worlds/mvxixlbz34cbfb22/manifest.json": "825a1abb2a9a905169a9a7bdda38dd4f4c599014931ea27b4e15743196616230",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/depth.exr": "a6592c42e1b88edba6ed0d0b704e809cebc0ce039ba210cbda70b8959ef9a595",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/normal.exr": "7ec505d0962dbd9f9b04e702c26e648a64636ddeb592791149716c99fbaae5cc",
+        "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/points.exr": "08b9e072b3b7099e32a0d0f58b8bc2d1817b4ea9e3a765fd9ee9cba3b39ed002"
+      }
+    },
+    {
+      "id": "mvxjtywhaeb1ff10/carved-stone-wellhead/idol@moge3",
+      "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+      "object": "carved-stone-wellhead",
+      "contact": "floor",
+      "maskVersion": 2,
+      "sourceSha256": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+      "photoSha256": "a24a3dcb9eec536e644a2e30af5f1136700c48080eee45f84eb6a997ce3b8800",
+      "turntableSha256": "582c430de4211466220da3664fdb5db3cdf13ae0a2e5d07fc8b0f68d57f092df",
+      "assetSha256": "16a47051858ebb7c67a7327e343c4e39ea0cb7829798a097cfacb28855027106",
+      "maskSha256": "4b0c3a1e113e9dae6dac89e4e8f989b2ced11195ba2e5858b7d21cdaaee14975",
+      "baselineIou": 0.8852248861249762,
+      "toolIou": 0.8852248861249762,
+      "inputDir": "inputs/mvxjtywhaeb1ff10__carved-stone-wellhead",
+      "files": {
+        "data/worlds/mvxjtywhaeb1ff10/source.jpg": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+        "data/worlds/mvxjtywhaeb1ff10/objects/carved-stone-wellhead/m2/mask.png": "17a34bcfe8f0b9e20b736fa2535899b7d498649ffd7700ba1288a6f4f3aebb73",
+        "data/worlds/mvxjtywhaeb1ff10/objects/carved-stone-wellhead/m2/idol/model.ply": "16a47051858ebb7c67a7327e343c4e39ea0cb7829798a097cfacb28855027106",
+        "data/worlds/mvxjtywhaeb1ff10/scene.json": "985ef9105c75f8d70d5bab54f3cfff91ad0c5f2feefe1995e3b896b52c67dcf1",
+        "data/worlds/mvxjtywhaeb1ff10/manifest.json": "35a46a80cb773ee2fcb057ea120244b68a37031786df1f2f0fe33d953309f3ac",
+        "data/worlds/mvxjtywhaeb1ff10/depth/moge3/original/points.exr": "af0e38feca55ab2f700ed3f4c9aecd39be5bdd2f33a8881a891c2633c0b85a69",
+        "data/worlds/mvxjtywhaeb1ff10/depth/moge3/original/depth.exr": "1e05fe62a51fcdb0ba4c4f56e911ecc429ee2714b6ae01903f1488e291f19a54",
+        "data/worlds/mvxjtywhaeb1ff10/depth/moge3/original/normal.exr": "81af59ff7aa3d8d6a75b14f78e6bc57d5ae9e5fe65b378cff792d4c8ac3e7d96"
+      }
+    },
+    {
+      "id": "mvxjtywhaeb1ff10/tall-potted-palm-tree/idol@moge3",
+      "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+      "object": "tall-potted-palm-tree",
+      "contact": "floor",
+      "maskVersion": 2,
+      "sourceSha256": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+      "photoSha256": "962f558ad41c532c0798291f715222848a0776aecf8772c0ee43a703170b5390",
+      "turntableSha256": "5ec60d4971ace936a10a4957f3cb191e097a689f8cd04ca0b661cea7948b3bba",
+      "assetSha256": "1c6166877a7f5589dbfca7c0568163c1197e7c2619e0463356871a3237f94ccd",
+      "maskSha256": "643503b13b201ba753ca18ee06d283dd26d1918f8e472a2e09562563c9a16c6a",
+      "baselineIou": 0.4950853595447491,
+      "toolIou": 0.4967253114164633,
+      "inputDir": "inputs/mvxjtywhaeb1ff10__tall-potted-palm-tree",
+      "files": {
+        "data/worlds/mvxjtywhaeb1ff10/source.jpg": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+        "data/worlds/mvxjtywhaeb1ff10/objects/tall-potted-palm-tree/m2/mask.png": "f703e71c9b795da88fe20a8b145cbe82e026ce4ed68a75371f8f2a3fd2c2dc49",
+        "data/worlds/mvxjtywhaeb1ff10/objects/tall-potted-palm-tree/m2/idol/model.ply": "1c6166877a7f5589dbfca7c0568163c1197e7c2619e0463356871a3237f94ccd",
+        "data/worlds/mvxjtywhaeb1ff10/scene.json": "985ef9105c75f8d70d5bab54f3cfff91ad0c5f2feefe1995e3b896b52c67dcf1",
+        "data/worlds/mvxjtywhaeb1ff10/manifest.json": "35a46a80cb773ee2fcb057ea120244b68a37031786df1f2f0fe33d953309f3ac",
+        "data/worlds/mvxjtywhaeb1ff10/depth/moge3/original/points.exr": "af0e38feca55ab2f700ed3f4c9aecd39be5bdd2f33a8881a891c2633c0b85a69",
+        "data/worlds/mvxjtywhaeb1ff10/depth/moge3/original/depth.exr": "1e05fe62a51fcdb0ba4c4f56e911ecc429ee2714b6ae01903f1488e291f19a54",
+        "data/worlds/mvxjtywhaeb1ff10/depth/moge3/original/normal.exr": "81af59ff7aa3d8d6a75b14f78e6bc57d5ae9e5fe65b378cff792d4c8ac3e7d96"
+      }
+    },
+    {
+      "id": "mvzp2tur93987dde/smiling-woman-in-pink-un/idol@moge3",
+      "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "object": "smiling-woman-in-pink-un",
+      "contact": "surface",
+      "maskVersion": 1,
+      "sourceSha256": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "photoSha256": "c530236ec3d45fc4781a429f705278491d693416f95765d13e09e54a954427f4",
+      "turntableSha256": "17d18609d4fd5ebb6a6d2ab6792491e2cf7273c03a05995f36818881d3ac0d44",
+      "assetSha256": "3516a09848809b4a58295d92514c397608325cd2c64d0919070f5745f6b7b149",
+      "maskSha256": "8eeffc2395a0c59c3625c670014eb92280e43acb32235455936badf4fafb3ed8",
+      "baselineIou": 0.8707363406957952,
+      "toolIou": 0.8707363406957952,
+      "inputDir": "inputs/mvzp2tur93987dde__smiling-woman-in-pink-un",
+      "files": {
+        "data/worlds/mvzp2tur93987dde/source.jpg": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+        "data/worlds/mvzp2tur93987dde/objects/smiling-woman-in-pink-un/mask.png": "e18cc525d233909660e8e6c954ce21903e04c1c383a1f3923e5d5fb08a752547",
+        "data/worlds/mvzp2tur93987dde/objects/smiling-woman-in-pink-un/idol/model.ply": "3516a09848809b4a58295d92514c397608325cd2c64d0919070f5745f6b7b149",
+        "data/worlds/mvzp2tur93987dde/scene.json": "33a0591cc894412955724683707cbdcd813904d073482b110e2c83ba55612b23",
+        "data/worlds/mvzp2tur93987dde/manifest.json": "db063effc1e1e0ca106dd11b7f1aac064d6c2ffacc1b26041107e0e0415b695c",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/points.exr": "6401f3b0d7176386c1f19fe1325b4b062513baf94f4476f00eb4335acbb056f5",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/depth.exr": "bd1760544f1ea7dbb0604f7ce6a2daf76fc422837ee46d6b932cb3f0d5179e7f",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/normal.exr": "0cb5d1fcf8da6383eca72a2ededc3ca88a0ba364c1e86f276bb675d1c6b3b1af"
+      }
+    },
+    {
+      "id": "mvzp2tur93987dde/round-gold-vanity-mirror/idol@moge3",
+      "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "object": "round-gold-vanity-mirror",
+      "contact": "surface",
+      "maskVersion": 1,
+      "sourceSha256": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "photoSha256": "e349febace261ea5d0b69906b8eab9d775def0f9d36c5fff8e93966ae3a12e6c",
+      "turntableSha256": "72c3dfd2606184790cce44136a407d7224dbd8381eeea8bd3711f63b94a292df",
+      "assetSha256": "98eff88304e97e6bdd67c9a0ef8b4b9548bd4c6967ecc81b3c03597bfda504ba",
+      "maskSha256": "ead880ab28cb3eae252d687165588f78886fe3f9bbd88abc4a67d74259789406",
+      "baselineIou": 0.8793056685652292,
+      "toolIou": 0.8793056685652292,
+      "inputDir": "inputs/mvzp2tur93987dde__round-gold-vanity-mirror",
+      "files": {
+        "data/worlds/mvzp2tur93987dde/source.jpg": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+        "data/worlds/mvzp2tur93987dde/objects/round-gold-vanity-mirror/mask.png": "13946bd9eabb918452031ad9057dc0a91a780d6225a2de7601fb0541c995b5e5",
+        "data/worlds/mvzp2tur93987dde/objects/round-gold-vanity-mirror/idol/model.ply": "98eff88304e97e6bdd67c9a0ef8b4b9548bd4c6967ecc81b3c03597bfda504ba",
+        "data/worlds/mvzp2tur93987dde/scene.json": "33a0591cc894412955724683707cbdcd813904d073482b110e2c83ba55612b23",
+        "data/worlds/mvzp2tur93987dde/manifest.json": "db063effc1e1e0ca106dd11b7f1aac064d6c2ffacc1b26041107e0e0415b695c",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/points.exr": "6401f3b0d7176386c1f19fe1325b4b062513baf94f4476f00eb4335acbb056f5",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/depth.exr": "bd1760544f1ea7dbb0604f7ce6a2daf76fc422837ee46d6b932cb3f0d5179e7f",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/normal.exr": "0cb5d1fcf8da6383eca72a2ededc3ca88a0ba364c1e86f276bb675d1c6b3b1af"
+      }
+    },
+    {
+      "id": "mvzp2tur93987dde/left-pink-flower-vase/idol@moge3",
+      "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "object": "left-pink-flower-vase",
+      "contact": "surface",
+      "maskVersion": 1,
+      "sourceSha256": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "photoSha256": "8d4063fc7c82a4826601ecdca9c77872e99f2afb61f8914ad3211ddfae3b2b7a",
+      "turntableSha256": "40b5a9d977b6e4806495b55d3162cc1ea5daf3210c6020ad52778b65e9a4282e",
+      "assetSha256": "baa34c2d472ed90dea3d89f76d79a0257ab4090e8dba75b8d91fb0de33f0aa43",
+      "maskSha256": "17937c836233fe241d8cde15abdc20e2f2fe3e44eb9e51adb0003d0cba35995b",
+      "baselineIou": 0.8489805063858391,
+      "toolIou": 0.8570468294868923,
+      "inputDir": "inputs/mvzp2tur93987dde__left-pink-flower-vase",
+      "files": {
+        "data/worlds/mvzp2tur93987dde/source.jpg": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+        "data/worlds/mvzp2tur93987dde/objects/left-pink-flower-vase/mask.png": "c3b4981d45659b46a698e6edcbd441d4df0391befdcd16991dbebf78d28b53bb",
+        "data/worlds/mvzp2tur93987dde/objects/left-pink-flower-vase/idol/model.ply": "baa34c2d472ed90dea3d89f76d79a0257ab4090e8dba75b8d91fb0de33f0aa43",
+        "data/worlds/mvzp2tur93987dde/scene.json": "33a0591cc894412955724683707cbdcd813904d073482b110e2c83ba55612b23",
+        "data/worlds/mvzp2tur93987dde/manifest.json": "db063effc1e1e0ca106dd11b7f1aac064d6c2ffacc1b26041107e0e0415b695c",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/points.exr": "6401f3b0d7176386c1f19fe1325b4b062513baf94f4476f00eb4335acbb056f5",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/depth.exr": "bd1760544f1ea7dbb0604f7ce6a2daf76fc422837ee46d6b932cb3f0d5179e7f",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/normal.exr": "0cb5d1fcf8da6383eca72a2ededc3ca88a0ba364c1e86f276bb675d1c6b3b1af"
+      }
+    },
+    {
+      "id": "mvzp2tur93987dde/right-pink-flower-vase/idol@moge3",
+      "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "object": "right-pink-flower-vase",
+      "contact": "surface",
+      "maskVersion": 1,
+      "sourceSha256": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "photoSha256": "9cfa88134ca1c0b5112dc474b14383ef9234fd81a8feefab0c8de35a9ff5b0d5",
+      "turntableSha256": "713e088dae7d77f1000d1de5c5df693c3f6a98f7af66940e5e4526828e0d6d2e",
+      "assetSha256": "9b2a9ef49a052104392c2227a314ed9ba7b868eb596bf5e19c56242a8637b7eb",
+      "maskSha256": "b6142a02e7778c1c712e4c50a98b6fb1da200eefb0929b29fe8f96da07940e5a",
+      "baselineIou": 0.9148077447504772,
+      "toolIou": 0.9169893646032179,
+      "inputDir": "inputs/mvzp2tur93987dde__right-pink-flower-vase",
+      "files": {
+        "data/worlds/mvzp2tur93987dde/source.jpg": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+        "data/worlds/mvzp2tur93987dde/objects/right-pink-flower-vase/mask.png": "6891a34237246c8a4ca29c72ecb484c0bccd644d083bdf8a8110f9c3147b56ec",
+        "data/worlds/mvzp2tur93987dde/objects/right-pink-flower-vase/idol/model.ply": "9b2a9ef49a052104392c2227a314ed9ba7b868eb596bf5e19c56242a8637b7eb",
+        "data/worlds/mvzp2tur93987dde/scene.json": "33a0591cc894412955724683707cbdcd813904d073482b110e2c83ba55612b23",
+        "data/worlds/mvzp2tur93987dde/manifest.json": "db063effc1e1e0ca106dd11b7f1aac064d6c2ffacc1b26041107e0e0415b695c",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/points.exr": "6401f3b0d7176386c1f19fe1325b4b062513baf94f4476f00eb4335acbb056f5",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/depth.exr": "bd1760544f1ea7dbb0604f7ce6a2daf76fc422837ee46d6b932cb3f0d5179e7f",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/normal.exr": "0cb5d1fcf8da6383eca72a2ededc3ca88a0ba364c1e86f276bb675d1c6b3b1af"
+      }
+    },
+    {
+      "id": "mvzp2tur93987dde/glass-makeup-brush-holde/idol@moge3",
+      "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "object": "glass-makeup-brush-holde",
+      "contact": "surface",
+      "maskVersion": 1,
+      "sourceSha256": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+      "photoSha256": "c9dd159ae6a3eaf7aa25d568a5e5acf51060d948b00c8220688b44da1a1fd3cc",
+      "turntableSha256": "939fbb5ef3748801d504b42d70f857eb5a9027598efeb86ba9cb9584f98c9c23",
+      "assetSha256": "213c8583df59f59ef034db33b06f61b624d93618f65a1b814e93d2b8c39414e6",
+      "maskSha256": "9ad855a48912fa1b06668228f04903e1633ff11c62c9b3958bc9b36fb26526da",
+      "baselineIou": 0.727331189710611,
+      "toolIou": 0.727331189710611,
+      "inputDir": "inputs/mvzp2tur93987dde__glass-makeup-brush-holde",
+      "files": {
+        "data/worlds/mvzp2tur93987dde/source.jpg": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+        "data/worlds/mvzp2tur93987dde/objects/glass-makeup-brush-holde/mask.png": "e8be23be46dc086586c3f2fb1926f78511a2ce82327db418f338e3bcfc457c27",
+        "data/worlds/mvzp2tur93987dde/objects/glass-makeup-brush-holde/idol/model.ply": "213c8583df59f59ef034db33b06f61b624d93618f65a1b814e93d2b8c39414e6",
+        "data/worlds/mvzp2tur93987dde/scene.json": "33a0591cc894412955724683707cbdcd813904d073482b110e2c83ba55612b23",
+        "data/worlds/mvzp2tur93987dde/manifest.json": "db063effc1e1e0ca106dd11b7f1aac064d6c2ffacc1b26041107e0e0415b695c",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/points.exr": "6401f3b0d7176386c1f19fe1325b4b062513baf94f4476f00eb4335acbb056f5",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/depth.exr": "bd1760544f1ea7dbb0604f7ce6a2daf76fc422837ee46d6b932cb3f0d5179e7f",
+        "data/worlds/mvzp2tur93987dde/depth/moge3/original/normal.exr": "0cb5d1fcf8da6383eca72a2ededc3ca88a0ba364c1e86f276bb675d1c6b3b1af"
+      }
+    },
+    {
+      "id": "mw1u8wfg5b232a59/tan-and-white-corgi/idol@moge3",
+      "photo": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+      "object": "tan-and-white-corgi",
+      "contact": "floor",
+      "maskVersion": 1,
+      "sourceSha256": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+      "photoSha256": "e1a6f75c2237aeb75fccf32b3fbcbac63e48ec4862c28564b6d5c01ae953740c",
+      "turntableSha256": "9489c5787b5cdbd3545be5ad497694054631e02f3e003901f02696653fe42e58",
+      "assetSha256": "46a9a17266dd61dc6094321880dcd23c875272d1266f744a713965a1e2af0799",
+      "maskSha256": "6a486566d2834d709e9855620ad5f9da6337ed60cbfa930f34435a2bab833bc3",
+      "baselineIou": 0.6697613749712269,
+      "toolIou": 0.6717577604265854,
+      "inputDir": "inputs/mw1u8wfg5b232a59__tan-and-white-corgi",
+      "files": {
+        "data/worlds/mw1u8wfg5b232a59/source.jpg": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+        "data/worlds/mw1u8wfg5b232a59/objects/tan-and-white-corgi/mask.png": "745686a6a395f93bd7bc9dd9b6f9588f53155420bbb06b5addca7b6c78ddc0f8",
+        "data/worlds/mw1u8wfg5b232a59/objects/tan-and-white-corgi/idol/model.ply": "46a9a17266dd61dc6094321880dcd23c875272d1266f744a713965a1e2af0799",
+        "data/worlds/mw1u8wfg5b232a59/scene.json": "162825baded07f2458a4ec9b84b9b34ee7d8e3fbaaae4079a9755507ad4daf24",
+        "data/worlds/mw1u8wfg5b232a59/manifest.json": "c4818a8ae6880f18e0956df5cfd291ec6d1933b7ed6ae8b9cfd1e5983561bf9d",
+        "data/worlds/mw1u8wfg5b232a59/depth/moge3/original/points.exr": "3060fbcca19656d5f0850cdc600b73299da495229ea21a1351c9e57b45d6204a",
+        "data/worlds/mw1u8wfg5b232a59/depth/moge3/original/depth.exr": "d82441fd5b89ddc66ff586f6b1a03d4ffe6e3a7a2160434d4a9387b5a35e4b28",
+        "data/worlds/mw1u8wfg5b232a59/depth/moge3/original/normal.exr": "0ac6d38536c262fcfdd9ce25a37bf28efae09acb657c31d13ec1b09e85adeedd"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "caseId": "mvxixlbz34cbfb22/golden-retriever/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/potted-lemon-tree/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/glass-makeup-brush-holde/idol@moge3",
+      "trial": 2,
+      "models": [
+        "gpt-6.1-terra",
+        "muse-wonder-1.0",
+        "muse-spark-1.3",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/potted-lemon-tree/idol@moge3",
+      "trial": 3,
+      "models": [
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-wonder-1.0",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/wooden-garden-bench/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mw1u8wfg5b232a59/tan-and-white-corgi/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/right-pink-flower-vase/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-terra",
+        "muse-wonder-1.0",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvxjtywhaeb1ff10/carved-stone-wellhead/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/red-vintage-bicycle/idol@moge3",
+      "trial": 3,
+      "models": [
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/left-pink-flower-vase/idol@moge3",
+      "trial": 3,
+      "models": [
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "muse-wonder-1.0",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvxjtywhaeb1ff10/tall-potted-palm-tree/idol@moge3",
+      "trial": 3,
+      "models": [
+        "muse-spark-1.3",
+        "muse-wonder-1.0",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/round-gold-vanity-mirror/idol@moge3",
+      "trial": 3,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvxjtywhaeb1ff10/carved-stone-wellhead/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mvxjtywhaeb1ff10/carved-stone-wellhead/idol@moge3",
+      "trial": 3,
+      "models": [
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "muse-wonder-1.0",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvxjtywhaeb1ff10/tall-potted-palm-tree/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-spark-1.3",
+        "muse-wonder-1.0",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/glass-makeup-brush-holde/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/red-vintage-bicycle/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/glass-makeup-brush-holde/idol@moge3",
+      "trial": 3,
+      "models": [
+        "muse-wonder-1.0",
+        "muse-spark-1.3",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/smiling-woman-in-pink-un/idol@moge3",
+      "trial": 2,
+      "models": [
+        "gpt-6.1-terra",
+        "muse-wonder-1.0",
+        "muse-spark-1.3",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/red-vintage-bicycle/idol@moge3",
+      "trial": 2,
+      "models": [
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-wonder-1.0",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/left-pink-flower-vase/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/golden-retriever/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/potted-lemon-tree/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-terra",
+        "muse-wonder-1.0",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/wooden-garden-bench/idol@moge3",
+      "trial": 3,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/round-gold-vanity-mirror/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/golden-retriever/idol@moge3",
+      "trial": 3,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/left-pink-flower-vase/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-terra",
+        "muse-wonder-1.0",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/smiling-woman-in-pink-un/idol@moge3",
+      "trial": 3,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvxixlbz34cbfb22/wooden-garden-bench/idol@moge3",
+      "trial": 1,
+      "models": [
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mw1u8wfg5b232a59/tan-and-white-corgi/idol@moge3",
+      "trial": 1,
+      "models": [
+        "gpt-6.1-sol",
+        "muse-spark-1.3",
+        "muse-wonder-1.0",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/round-gold-vanity-mirror/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-spark-1.3",
+        "muse-wonder-1.0",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mw1u8wfg5b232a59/tan-and-white-corgi/idol@moge3",
+      "trial": 3,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-spark-1.3"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/right-pink-flower-vase/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-spark-1.3",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-wonder-1.0"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/smiling-woman-in-pink-un/idol@moge3",
+      "trial": 1,
+      "models": [
+        "muse-wonder-1.0",
+        "muse-spark-1.3",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra"
+      ]
+    },
+    {
+      "caseId": "mvzp2tur93987dde/right-pink-flower-vase/idol@moge3",
+      "trial": 3,
+      "models": [
+        "gpt-6.1-terra",
+        "muse-wonder-1.0",
+        "muse-spark-1.3",
+        "gpt-6.1-sol"
+      ]
+    },
+    {
+      "caseId": "mvxjtywhaeb1ff10/tall-potted-palm-tree/idol@moge3",
+      "trial": 2,
+      "models": [
+        "muse-wonder-1.0",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "muse-spark-1.3"
+      ]
+    }
+  ],
+  "hypothesis": "Paired source-camera placement quality and completion, cost and latency differ between Spark/Terra and Wonder/Sol under identical WOM tools.",
+  "primary": "Success-adjusted silhouette IoU: equal weights per unique photograph, then objects, then trials. Failed final submissions score zero; missing trials cannot rank.",
+  "secondary": [
+    "Completion rate",
+    "Conditional IoU",
+    "Colour/depth/support error",
+    "Token-accounted total cost",
+    "Median observed end-to-end and model time"
+  ],
+  "settings": {
+    "protocol": "agent",
+    "effort": "medium",
+    "maxOutputTokensPerCall": 16000,
+    "maxNonSubmissionToolCalls": 8,
+    "maxModelCalls": 11,
+    "partialFallback": false,
+    "localCache": "bypassed",
+    "concurrency": 4
+  },
+  "statistics": "Average trials within objects and objects within photograph. Two-sided exact sign flip at photograph level; Holm correction for two primary comparisons. Exhaustive photo-bootstrap interval is descriptive only.",
+  "failurePolicy": "Retain all final-submission failures with score zero. No selective retries or exclusions based on outcomes. Transient retries follow the existing client, are logged and charged; unknown requests reserve their maximum estimated cost.",
+  "stopping": "Exactly 3 fresh attempts per model/object; stop new requests at $20. No outcome-based early stopping. Incomplete coverage remains explicitly unranked.",
+  "scope": "Existing convenience development sample: 4 unique photographs, one saved IDOL asset/object, MoGe-3. No fresh 3D generation, no claim about coding ability, no Global Par inference. Portrait duplicate is excluded by source identity.",
+  "unavailable": "Opus/Sonnet Kiro coding sessions are baseline provenance, not API subjects in this study; no Anthropic key is configured.",
+  "pricingSources": [
+    "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+    "https://dev.meta.ai/docs/pricing-rate-limits"
+  ]
+}

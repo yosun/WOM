@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-11-05T00:54:37.606Z",
+  "final": true,
+  "requests": 422,
+  "responses": 422,
+  "unknown": 0,
+  "tokenCostUsd": 3.1761924999999955,
+  "distinctPromptCases": 12,
+  "checks": 1505,
+  "passed": 1505,
+  "errors": [],
+  "protocolSha256": "db3e40466f91b6564e14bce84af6115de18d9eda88c7c6853e991e7ccbd7dbdf",
+  "auditImplementation": "../../../../scripts/audit-model-study.mjs",
+  "scope": "Programmatic checks against locally retained request/response receipts, source snapshots and ledger; not independent human review."
+}

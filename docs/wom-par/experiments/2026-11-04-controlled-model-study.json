@@ -1,0 +1,377 @@
+{
+  "schema": "wom-controlled-model-study-summary/1",
+  "studyId": "20261105-002209",
+  "collectedAtUtc": "2026-11-05T00:51:34.539Z",
+  "scope": "Existing convenience development sample: 4 unique photographs, one saved IDOL asset/object, MoGe-3. No fresh 3D generation, no claim about coding ability, no Global Par inference. Portrait duplicate is excluded by source identity.",
+  "primaryEstimand": "Equal photograph weights; within each photo, equal object weights and equal fresh-trial weights. Non-completions score zero; missing attempts stay unavailable.",
+  "protocolSha256": "db3e40466f91b6564e14bce84af6115de18d9eda88c7c6853e991e7ccbd7dbdf",
+  "models": [
+    "muse-spark-1.3",
+    "muse-wonder-1.0",
+    "gpt-6.1-terra",
+    "gpt-6.1-sol"
+  ],
+  "photographs": 4,
+  "objectCases": 12,
+  "freshTrialsPerModelCase": 3,
+  "agentAttempts": 144,
+  "liveApiCalls": 422,
+  "localResponseCacheHits": 0,
+  "tokenAccountedSpendUsd": 3.1761924999999946,
+  "summaries": [
+    {
+      "model": "muse-spark-1.3",
+      "attempted": 36,
+      "expected": 36,
+      "completed": 36,
+      "failed": 0,
+      "completeCourse": true,
+      "photoWeightedIou": 0.7528181340416223,
+      "conditionalValidIou": 0.7915123787047593,
+      "totalUsd": 0.69969735,
+      "totalCalls": 87,
+      "medianWallSeconds": 26.089,
+      "medianModelSeconds": 25.381999999999998,
+      "perPhoto": [
+        {
+          "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+          "iou": 0.798257798356835
+        },
+        {
+          "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+          "iou": 0.6909750987707197
+        },
+        {
+          "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+          "iou": 0.8502818786123492
+        },
+        {
+          "photo": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+          "iou": 0.6717577604265855
+        }
+      ]
+    },
+    {
+      "model": "muse-wonder-1.0",
+      "attempted": 36,
+      "expected": 36,
+      "completed": 36,
+      "failed": 0,
+      "completeCourse": true,
+      "photoWeightedIou": 0.7531488204501228,
+      "conditionalValidIou": 0.7915468719359234,
+      "totalUsd": 2.0814272000000003,
+      "totalCalls": 108,
+      "medianWallSeconds": 29.359,
+      "medianModelSeconds": 28.326999999999998,
+      "perPhoto": [
+        {
+          "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+          "iou": 0.798257798356835
+        },
+        {
+          "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+          "iou": 0.6909750987707197
+        },
+        {
+          "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+          "iou": 0.8500546718973414
+        },
+        {
+          "photo": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+          "iou": 0.6733077127755948
+        }
+      ]
+    },
+    {
+      "model": "gpt-6.1-terra",
+      "attempted": 36,
+      "expected": 36,
+      "completed": 36,
+      "failed": 0,
+      "completeCourse": true,
+      "photoWeightedIou": 0.7546741740138793,
+      "conditionalValidIou": 0.7946057786585208,
+      "totalUsd": 0.16178304999999998,
+      "totalCalls": 128,
+      "medianWallSeconds": 15.7045,
+      "medianModelSeconds": 14.0105,
+      "perPhoto": [
+        {
+          "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+          "iou": 0.798257798356835
+        },
+        {
+          "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+          "iou": 0.6909750987707197
+        },
+        {
+          "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+          "iou": 0.8577060385013764
+        },
+        {
+          "photo": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+          "iou": 0.6717577604265855
+        }
+      ]
+    },
+    {
+      "model": "gpt-6.1-sol",
+      "attempted": 36,
+      "expected": 36,
+      "completed": 36,
+      "failed": 0,
+      "completeCourse": true,
+      "photoWeightedIou": 0.7545343777270941,
+      "conditionalValidIou": 0.7943727848472122,
+      "totalUsd": 0.2332849,
+      "totalCalls": 99,
+      "medianWallSeconds": 11.6195,
+      "medianModelSeconds": 10.46,
+      "perPhoto": [
+        {
+          "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+          "iou": 0.798257798356835
+        },
+        {
+          "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+          "iou": 0.6909750987707197
+        },
+        {
+          "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+          "iou": 0.857146853354236
+        },
+        {
+          "photo": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+          "iou": 0.6717577604265855
+        }
+      ]
+    }
+  ],
+  "prespecifiedPairs": [
+    {
+      "meta": "muse-spark-1.3",
+      "openai": "gpt-6.1-terra",
+      "complete": true,
+      "perPhoto": [
+        {
+          "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+          "meta": 0.798257798356835,
+          "openai": 0.798257798356835,
+          "delta": 0
+        },
+        {
+          "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+          "meta": 0.6909750987707197,
+          "openai": 0.6909750987707197,
+          "delta": 0
+        },
+        {
+          "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+          "meta": 0.8502818786123492,
+          "openai": 0.8577060385013764,
+          "delta": -0.0074241598890272265
+        },
+        {
+          "photo": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+          "meta": 0.6717577604265855,
+          "openai": 0.6717577604265855,
+          "delta": 0
+        }
+      ],
+      "deltaMetaMinusOpenai": -0.0018560399722568066,
+      "descriptiveBootstrap95": [
+        -0.00556811991677042,
+        0
+      ],
+      "photoSignFlipP": 1,
+      "holmP": 1,
+      "objectWins": 0,
+      "objectTies": 11,
+      "objectLosses": 1,
+      "tieThresholdIou": 0.01
+    },
+    {
+      "meta": "muse-wonder-1.0",
+      "openai": "gpt-6.1-sol",
+      "complete": true,
+      "perPhoto": [
+        {
+          "photo": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05",
+          "meta": 0.798257798356835,
+          "openai": 0.798257798356835,
+          "delta": 0
+        },
+        {
+          "photo": "b9d134e11fe73871a1996a4e640719ed07801bf0269590476f62483ac5d8d0e9",
+          "meta": 0.6909750987707197,
+          "openai": 0.6909750987707197,
+          "delta": 0
+        },
+        {
+          "photo": "d5a88112a0162a58512fab6ddf2e0b32519f0abfe9ce0cb3bf03802b76d29d43",
+          "meta": 0.8500546718973414,
+          "openai": 0.857146853354236,
+          "delta": -0.0070921814568946084
+        },
+        {
+          "photo": "ae31e2cf5c2745049f8b3c9fcd2013088df18e1a1d3310f26e4d4159f0f59b81",
+          "meta": 0.6733077127755948,
+          "openai": 0.6717577604265855,
+          "delta": 0.0015499523490092315
+        }
+      ],
+      "deltaMetaMinusOpenai": -0.0013855572769713442,
+      "descriptiveBootstrap95": [
+        -0.005319136092670956,
+        0.0011624642617569236
+      ],
+      "photoSignFlipP": 1,
+      "holmP": 1,
+      "objectWins": 0,
+      "objectTies": 11,
+      "objectLosses": 1,
+      "tieThresholdIou": 0.01
+    }
+  ],
+  "inferenceLimitations": "Small existing development course, not a held-out population sample. Bootstrap intervals are descriptive. No Global WOMPar preference score is inferred.",
+  "toolSettings": {
+    "protocol": "agent",
+    "effort": "medium",
+    "maxOutputTokensPerCall": 16000,
+    "maxNonSubmissionToolCalls": 8,
+    "maxModelCalls": 11,
+    "partialFallback": false,
+    "localCache": "bypassed",
+    "concurrency": 4
+  },
+  "localReport": "data/bench/model-study/20261105-002209/report.html",
+  "localProtocol": "data/bench/model-study/20261105-002209/protocol.json",
+  "collector": "scripts/study-models.ts",
+  "analysis": "scripts/model-study-analysis.ts",
+  "audit": {
+    "checks": 1505,
+    "passed": 1505,
+    "requests": 422,
+    "responses": 422,
+    "unknown": 0,
+    "errors": []
+  },
+  "pricingSources": [
+    "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+    "https://dev.meta.ai/docs/pricing-rate-limits"
+  ],
+  "dataAvailability": "Protocol, numerical trial outcomes, critical collection-time source, and analysis implementation are public. Original photos, 3D assets, complete API receipts and model transcripts remain local.",
+  "globalWomPar": "Not ranked: this is source-camera placement, without complete-world preference ballots.",
+  "geometricReferences": {
+    "baselineIou": 0.7498007732831804,
+    "toolIou": 0.7528181340416222
+  },
+  "secondaryDiagnostics": [
+    {
+      "model": "muse-spark-1.3",
+      "colourError": {
+        "photoWeightedMean": 0.16831822431869686,
+        "measured": 36
+      },
+      "depthError": {
+        "photoWeightedMean": 0.19640735712267338,
+        "measured": 36
+      },
+      "absoluteSupportGapCm": {
+        "photoWeightedMean": 0.9773409363408135,
+        "measured": 36
+      },
+      "tiltDegrees": {
+        "photoWeightedMean": 5.152979789943318e-07,
+        "measured": 36
+      },
+      "modelCalls": 87,
+      "tools": {
+        "auto_fit": 36,
+        "render_placement": 9,
+        "measure_depth": 6
+      }
+    },
+    {
+      "model": "muse-wonder-1.0",
+      "colourError": {
+        "photoWeightedMean": 0.16888275616265658,
+        "measured": 36
+      },
+      "depthError": {
+        "photoWeightedMean": 0.19623649071240326,
+        "measured": 36
+      },
+      "absoluteSupportGapCm": {
+        "photoWeightedMean": 0.9795619336658438,
+        "measured": 36
+      },
+      "tiltDegrees": {
+        "photoWeightedMean": 5.152979789943318e-07,
+        "measured": 36
+      },
+      "modelCalls": 108,
+      "tools": {
+        "auto_fit": 37,
+        "render_placement": 30,
+        "measure_depth": 5
+      }
+    },
+    {
+      "model": "gpt-6.1-terra",
+      "colourError": {
+        "photoWeightedMean": 0.16641498441034314,
+        "measured": 36
+      },
+      "depthError": {
+        "photoWeightedMean": 0.19709929326872333,
+        "measured": 36
+      },
+      "absoluteSupportGapCm": {
+        "photoWeightedMean": 0.9773713051164246,
+        "measured": 36
+      },
+      "tiltDegrees": {
+        "photoWeightedMean": 5.152979789943318e-07,
+        "measured": 36
+      },
+      "modelCalls": 128,
+      "tools": {
+        "auto_fit": 49,
+        "render_placement": 37,
+        "measure_depth": 6
+      }
+    },
+    {
+      "model": "gpt-6.1-sol",
+      "colourError": {
+        "photoWeightedMean": 0.1663054981864085,
+        "measured": 36
+      },
+      "depthError": {
+        "photoWeightedMean": 0.19708995987201272,
+        "measured": 36
+      },
+      "absoluteSupportGapCm": {
+        "photoWeightedMean": 0.9773724261444253,
+        "measured": 36
+      },
+      "tiltDegrees": {
+        "photoWeightedMean": 5.152979789943318e-07,
+        "measured": 36
+      },
+      "modelCalls": 99,
+      "tools": {
+        "auto_fit": 41,
+        "render_placement": 22
+      }
+    }
+  ],
+  "frozenInputFilesChecked": 48,
+  "changedOriginalFiles": [],
+  "publicReport": "https://github.com/yosun/WOM/blob/main/docs/wom-par/experiments/2026-11-04-controlled-model-study.md",
+  "publicDataDirectory": "docs/wom-par/experiments/2026-11-04-controlled-model-study/",
+  "publicCollector": "docs/wom-par/experiments/2026-11-04-controlled-model-study/collection-source/scripts/study-models.ts"
+}
