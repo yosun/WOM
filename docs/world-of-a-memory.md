@@ -167,7 +167,7 @@ None of this is needed on your own machine. It matters on a server other people 
 
 ### Postgres
 
-The schema is `db/migrations/001_init.sql`, one transaction. Three roles touch it:
+Apply the SQL files in `db/migrations/` in order. The initial schema is `001_init.sql`; `002_payment_reversals.sql` adds refund/dispute reconciliation and credit debt. Each file is one transaction. Three roles touch the schema:
 
 | Role | Used by | Can |
 | --- | --- | --- |
@@ -175,7 +175,7 @@ The schema is `db/migrations/001_init.sql`, one transaction. Three roles touch i
 | `wom_app` | The API and the build worker (`DATABASE_URL`). Row-level security applies. | Read and write its own caller's rows, spend that caller's credits, redeem a promo code. It cannot grant credits, change roles or read other people's rows. |
 | `wom_system` | The Stripe webhook, promo minting and admin tools (`DATABASE_URL_SYSTEM`). | Full access. |
 
-To set up a database: put the owner's connection string in `.env` as `DATABASE_URL_ADMIN`, apply the migration (for example `psql "$DATABASE_URL_ADMIN" -f db/migrations/001_init.sql`), then run `node scripts/db-roles.mjs`. It gives `wom_app` and `wom_system` random passwords and appends `DATABASE_URL` and `DATABASE_URL_SYSTEM` to `.env`, so no password is ever in git. Only the admin scripts read `DATABASE_URL_ADMIN`; the server never does. `WOM_STORE=postgres` needs both of the other two URLs.
+To set up a database: put the owner's connection string in `.env` as `DATABASE_URL_ADMIN`, apply `001_init.sql` followed by `002_payment_reversals.sql` with `psql`, then run `node scripts/db-roles.mjs`. Existing databases need only migration 002. The server verifies that migration before listening. The roles script gives `wom_app` and `wom_system` random passwords and appends `DATABASE_URL` and `DATABASE_URL_SYSTEM` to `.env`. Only the admin scripts read `DATABASE_URL_ADMIN`; the server never does. `WOM_STORE=postgres` needs both of the other two URLs.
 
 The API tells the database who is asking once per transaction (`app.user_id`, `app.role`), and the policies do the rest. `access.ts` writes the same world-read rule again in code (`levelOf`, mirroring the `worlds_read` policy), so a bug in one cannot show more than the other would.
 
@@ -202,7 +202,7 @@ Someone who only looks gets what the viewer draws and nothing else. By path allo
 | Look | A shared world's manifest, scene, slides and public files |
 | Flag | A signed-in visitor may flag a problem in a shared world |
 | Owner (or administrator) | Everything else about one world: retry, layout, slides, visibility, placement, observations, delete |
-| Administrator | Tools that spend model budget and are not priced in credits yet: extra object models, asset checks, placement agents, mask redo, paid fixes, minting promo codes (`POST /api/admin/promo`) |
+| Administrator | Tools that spend model budget and are not priced in credits yet: video generation, extra object models, asset checks, placement agents, mask redo, paid fixes, minting promo codes (`POST /api/admin/promo`) |
 
 ### Credits
 
@@ -210,11 +210,18 @@ With `WOM_STORE=postgres`, building a world costs a person who is not an adminis
 
 - The credits are taken when the upload is accepted, before anything that costs money starts, and keyed by the world, so two uploads at once cannot spend the same credits. A balance that is too low answers 402 with the balance and the price.
 - **A failed build is refunded.** A build that ends `failed` (a step it cannot do without stopped it, so there is no world to look at) gives its credits back at once, and the build log says so. A world that ends `partial` keeps them: it can be looked at, and retrying its failed parts is free.
-- **A retry of a refunded world holds the price again first**, and answers 402 with the balance if it is too low, so a failed build cannot be retried for free. Retrying a world that still holds its credits takes nothing more, and administrators are never charged.
+- **A retry of a refunded world holds the price again first**, and answers 402 with the balance if it is too low. Ordinary retries keep their original build settings; changing models or agents requires an administrator. Retrying a world that still holds its credits takes nothing more. Accounts with outstanding refunded-credit debt cannot retry, and administrators are never charged.
 - Deleting a world that failed or never started gives back whatever it still holds. When the server starts, before it takes requests, it also gives back the credits of any failed world that still holds them: a crash between the failure and the refund, or a build that failed before refunds existed.
 - Each charge and each refund is a row in `credit_ledger` (`hold` and `release`, numbered by round: hold 1, release 1, hold 2 on a retry, and so on). What a world holds is always worked out from those rows, so a refund can be asked for any number of times and gives back at most what was taken.
 - **Promo codes** look like `WOM-ABCD-EF23`, are redeemed once per person on the home page, and only their hash is stored. Make them with `npm run promo -- --credits 1500 --count 25 --days 45 --note judges`. On production, run `node --env-file=.env.main scripts/promo.ts` with the same options. The codes are printed once and nowhere else. A person gets 8 tries per 10 minutes.
-- **Packs** are bought through Stripe Payment Links (four packs, $10 to $100). The server holds no Stripe API key. It sends the buyer to the link with their user id attached, and Stripe tells it who paid through a signed webhook. The only secret is that endpoint's signing secret, `STRIPE_WEBHOOK_SECRET`, and packs are offered only while it is set. Credits are added once per checkout, a payment of the wrong amount answers 500 so Stripe retries, and a test event never adds credits on a live site. The server defaults to test mode and uses `server/src/packs.json`; set `WOM_STRIPE_MODE=live` and use the live webhook secret to use the links in `server/src/packs.live.json`. `node scripts/stripe-packs.mjs` creates test packs and `node scripts/stripe-packs.mjs --live` creates live packs, using the Stripe CLI account. The webhook is an endpoint for `checkout.session.completed` and `checkout.session.async_payment_succeeded` at `/api/stripe/webhook`; put its signing secret in `STRIPE_WEBHOOK_SECRET`. Locally, `stripe listen --forward-to localhost:8787/api/stripe/webhook` prints one.
+- **Packs** use Stripe Payment Links with the buyer's user id attached. `STRIPE_WEBHOOK_SECRET` verifies webhook deliveries. Live mode also requires `STRIPE_READ_KEY`, a matching `rk_live_` restricted key with read access to Checkout Sessions, Charges, Refunds and Disputes; use a separate key with no write permissions whenever possible. Set `STRIPE_READ_KEY_EXPIRES_AT` to its ISO 8601 expiration, or `never` for a non-expiring key. Live packs stay hidden if the key or expiry setting is missing or invalid, or within seven days of expiry. This does not disable copied Stripe links, open tabs or checkouts in progress: rotate the key or deactivate the links before expiry. Failed webhook processing remains retryable. Test checkout can run without a read key; reconciliation needs a matching `rk_test_` key. The server defaults to test mode and `server/src/packs.json`; live mode uses `server/src/packs.live.json`. The existing Stripe CLI pack scripts create the links.
+- **Refunds and disputes reconcile current Stripe state.** The endpoint `/api/stripe/webhook` handles `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`, `refund.created`, `refund.updated`, `refund.failed`, `charge.refund.updated`, and the `charge.dispute.created`, `updated`, `closed`, `funds_withdrawn` and `funds_reinstated` events. Subscribe the webhook to those event types. Failed processing rolls back the event receipt and requests a retry. Events serialize per payment; duplicate or reordered snapshots do not repeat a credit grant or reversal. A read-only Stripe lookup also finds historical checkouts and their original credit grants.
+- **Reversal policy:** successful refunds remove the proportional credits, rounded upward to a whole credit. Active or lost disputes reserve their disputed share; winning a dispute restores it while retaining any actual refund deduction. Pending/failed refunds and inquiries do not remove credits. Total reversals cannot exceed the purchase's original grant. Already-spent refunded credits become debt: the spendable balance stays zero, generation is blocked, and future purchases, promos or build-credit releases pay that debt first. No automatic cash refund is issued by the app.
+- After upgrading, `npm run stripe:reconcile` previews historical credited checkouts. With the matching mode, system database URL and restricted read key configured, `npm run stripe:reconcile -- --apply` reconciles their credits, including refund events previously ignored. This reads Stripe and changes only WOM credit balances. Preserve the original database backup before applying the migration or historical reconciliation.
+
+Multipart request limits count the entire stream before parsing, including unused fields. Uploads have bounded concurrency, at most 32 parts and bounded text fields; excess uploads answer 429 with `Retry-After`. HTML responses include a CSP allowing the app's assets, WebAssembly and documented Clerk/Stripe endpoints, framing protection and a referrer policy. HTTPS deployments configured with `WOM_PUBLIC_ORIGIN` also send HSTS.
+
+`npm test` runs the unit and contract checks. Set `WOM_TEST_DATABASE_URL` to a dedicated local `wom_test` database to exercise both migrations, real credit transactions, concurrent webhook deliveries and database grants; those tests create and remove their own database. After `npm run build`, `npm run test:ui` exercises disposable browser fixtures, including keyboard mask editing, mobile controls, deferred auth loading, sharing and failure recovery. The application CI workflow runs all of these with PostgreSQL and Chromium.
 
 ### Link previews and search
 
@@ -259,7 +266,7 @@ The world's triangles are spread over tens of metres, while an object packs 140k
 
 ## WOM: World Observation Metrics
 
-In the app, WOM is *World of a Memory*: one photo rebuilt as a world you walk through. The measurements of how well that rebuild matches the photo are *World Observation Metrics*. The **WOMetrics** buttons in the gallery, slides and viewer open that generation's facts page at `/u/<handle>/<world>/build`, expanding the former Build Details page. The cross-world benchmark dashboard stays at `#/bench`. Both pages read saved evidence without making paid model calls.
+In the app, WOM is *World of a Memory*: one photo rebuilt as a world you walk through. The measurements of how well that rebuild matches the photo are *World Observation Metrics*. The **WOMetrics** buttons in creation, the gallery, slides and viewer open a modal over the current view. Closing it restores focus without changing the route or the viewer's camera position. The cross-world benchmark dashboard stays at `#/bench`. Both read saved evidence without making paid model calls.
 
 ### WOMetrics: facts for every generation
 
@@ -267,14 +274,20 @@ The generation page presents a nutrition-style label: placed versus planned obje
 
 `GET /api/worlds/<id>/metrics` derives these facts from the current manifest and scene, including older worlds and generations that are queued, running, partial or failed. No backfill or extra evaluation run is needed. Missing evidence stays missing; a world with no separate objects has no object IoU score, and an unchecked asset is never treated as clean. Placement uses the scene's active method with the same per-object fitter fallback as the viewer. Ground gaps are averaged by absolute distance so floating and sinking cannot cancel. Individual stage measurements are separate from the complete-course WOMPar preference score below.
 
-**WOMetrics is the default tab**, including for unfinished generations. It shows the current
+**Creation is the default experience**, including for unfinished generations. The source photo
+fills the viewport until the selected MoGe-2 or MoGe-3 camera-space points are available.
+The reconstruction uses irregularly sampled, source-colored particles. Drag to orbit, zoom,
+disperse the cloud, or stir the particles and let them settle back into the measured geometry.
+Live pipeline events and recorded stage states appear in a translucent, collapsible overlay.
+Completed worlds offer an explicit entry button. Reduced motion and manual pause stop ambient
+animation while keeping exploration available. **WOMetrics** opens as a modal and shows the current
 **WOMPar 0.1 reference: Par 0**, the named course/track and actual ballot count, followed by
 generation facts. A generation without a full-course result stays **Not ranked**. **Build Details**
-is a separate owner-only tab for progress, masks, model generation, retry controls and the log.
-Explicit Refine links (or `?tab=build-details`) open that tab. Tab changes support keyboard
-navigation and survive reload; normal `/build` links open WOMetrics.
+is an owner-only disclosure for progress, masks, model generation, retry controls and the log.
+Explicit Refine links (or `?tab=build-details`) expand these controls. Opening or closing
+WOMetrics preserves creation, expanded controls, and the current URL.
 
-Shared worlds expose the read-only WOMetrics tab. Spend and observation history remain owner-only;
+Shared worlds expose the read-only WOMetrics modal. Spend and observation history remain owner-only;
 logs, camera upload metadata and refinement controls are not exposed through the facts endpoint.
 Facts refresh after pipeline events and every ten seconds while visible. The original `/build`
 links and old hash bookmarks continue to work. **Report JSON** exports the safe facts; **Contributor
@@ -307,6 +320,34 @@ A tab's address is `#/bench/<tab>`, and `#/bench/<tab>/<run>` (or `#/bench/<run>
 **Cost and time per object.** A run answered from the cache has no cost, so the page prices each method from the ledger: what its model calls cost, averaged over the cases that were paid for (about $0.07 an object for Muse Spark's agent and $0.10 for Muse Wonder's). `direct+defer` and `direct→fit` are made from the direct answer, so they carry its price and time.
 
 **The numbers are computed in one place.** `packages/metrics/src/core/analyze.ts` (summaries, comparisons on shared cases, agreement) and `packages/metrics/src/web/analytics.ts` (every derived figure and every sentence on the Overview) are plain functions over what the API returns, so each can be checked against the data.
+
+### Observing WOMAgents
+
+Open **WOMAgents** from the home page, a world's placement controls, or its WOMetrics report.
+`#/agents` observes recent runs across worlds; `#/agents/<world>` stays with one world.
+
+- **Walkthrough & repairs** follows the provider-independent WOMAgent runtime: current phase,
+  inspected and verified viewpoints, findings, deferred issues, repair attempts, and recorded spend.
+  Select a run to compare its saved before/after frames, read independent verifier reviews, or inspect
+  its timestamped decision and tool trace. Accepted and rolled-back attempts remain distinguishable.
+- **Placement comparisons** (`?tab=placements`) shows existing scene placements and benchmark
+  answers, with silhouette IoU, paired gain over the grounded fitter, costs, cache hits and tool steps.
+  Quality cards use the latest result per case, source and technique, and respect mask exclusions.
+  Older scene placements are labelled *Saved placement*: missing run costs and timings stay unknown.
+- **Interactive demo** (`?tab=demo`) replays recorded patrol frames, camera poses and judge findings.
+  Scrub the timeline, change playback speed, follow the path map, or load the world's actual 3D assets.
+
+Both observation views refresh every five seconds and preserve filters, selection and expanded
+steps. **Pause** holds the display for inspection; **Refresh** updates it on demand. Connection failures
+retain the last successfully loaded records. Administrators can start a walkthrough with an agent,
+verifier and visible spending cap, or cancel a running one; the execution API enforces those limits.
+Owners can inspect their own run history, while shared-world visitors do not receive private traces,
+costs or evidence.
+
+Workflow summaries use `GET /api/agents/workflows` or `GET /api/worlds/<id>/agent-workflows`;
+placement summaries use `GET /api/agents/observations` or `GET /api/worlds/<id>/agent-runs`.
+Opening or refreshing observation does not start an agent or make a paid model call.
+`npm run test:agents` and `npm run test:agents:ui` check observation with isolated, provider-free records.
 
 ## Flagging problems (observe to fix)
 
@@ -359,7 +400,7 @@ Layer ids are `world`, `relief` and `object:<object id>`. The server checks ever
 
 ## Slides: choosing a world and how to enter it
 
-`#/space` (*Browse as slides* on the home page) shows memories as parallel image planes in a continuous temporal prism. Vertical scrolling or pinching contracts and expands the spacing smoothly between a close view and an overview of the finite collection; the bottom view control offers the same adjustment. Drag, scroll horizontally, or press ← → to move through time (Home and End jump to the ends). Click a plane, its small keyhole, or press Enter to pull it out along Z without changing its temporal X coordinate or orientation. The archive shrinks into the upper left while the selected image fills the center. Click the extracted image or keyhole, or press Enter again, to continue the existing keyhole flight and world-loading sequence. Escape or *Back to archive* puts the image back. The viewer's back arrow restores the extracted selection. Slides keep their aspect ratios and square corners. The keyhole's light remains a function of the clock alone (`web/src/keyhole-light.ts`), shared by the slide, its handoff cover, and the viewer.
+`#/space` (*Browse as WOMDeck slides* on the home page) shows memories as parallel image planes in a continuous temporal prism. Vertical scrolling or pinching contracts and expands the spacing smoothly between a close view and an overview of the finite collection; the bottom view control offers the same adjustment. Drag, scroll horizontally, or press ← → to move through time (Home and End jump to the ends). Click a plane, its small keyhole, or press Enter to pull it out along Z without changing its temporal X coordinate or orientation. The archive shrinks into the upper left while the selected image fills the center. Click the extracted image or keyhole, or press Enter again, to continue the existing keyhole flight and world-loading sequence. Escape or *Back to archive* puts the image back. The viewer's back arrow restores the extracted selection. Slides keep their aspect ratios and square corners. The keyhole's light remains a function of the clock alone (`web/src/keyhole-light.ts`), shared by the slide, its handoff cover, and the viewer.
 
 The slide's actions stay at the bottom: *Pull out* selects a memory and becomes *Enter world* once selected; *Film* opens the image's video editor, *Refine* opens the world's build and object controls, and the small *WOMetrics* button opens this generation's facts page. The more menu offers the world's other ways in and, for a saved view, removal. The corner card with the selected slide's title, date, and caption appears only with `?debug`.
 
@@ -580,6 +621,7 @@ Git ignores every `.env*` file except `.env.example`, which holds names and empt
 | `DATABASE_URL_ADMIN` | Env files on your machine only. It is the database owner's URL: the server never reads it and it is never sent to a host |
 | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | `.env` or the server's secret store. The publishable key is public by design and the browser receives it from `/api/auth/config` |
 | `STRIPE_WEBHOOK_SECRET` | The server's secret store only. Never in a file in the repository |
+| `STRIPE_READ_KEY`, `STRIPE_READ_KEY_EXPIRES_AT` | A restricted Stripe key and its expiry (`never` for a non-expiring key); required for live payments and reversal reconciliation. Prefer a read-only key |
 | `OPENAI_KEY`, `GEMINI_API_KEY` | `.env.local` |
 
 Other files that stay on your machine:

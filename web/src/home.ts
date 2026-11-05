@@ -229,6 +229,16 @@ export function renderHome(root: HTMLElement, navigate: (href: string) => void) 
       ),
     ),
   );
+  // The README and WOMPar landing page link directly to the photo-to-3D starting point.
+  // Wait for layout so the showcase above it cannot absorb the initial scroll.
+  let createFrame = 0;
+  if (new URLSearchParams(location.search).get('create') === '1') {
+    createFrame = requestAnimationFrame(() => {
+      if (disposed) return;
+      root.querySelector('#create-memory')?.scrollIntoView({ block: 'start' });
+      choose.focus({ preventScroll: true });
+    });
+  }
   if (account) {
     root.append(account.dialog);
     if (account.paidForCredits) account.open();
@@ -286,6 +296,7 @@ export function renderHome(root: HTMLElement, navigate: (href: string) => void) 
 
   return () => {
     disposed = true;
+    cancelAnimationFrame(createFrame);
     inspectSeq++;
     account?.dispose();
     memory.dispose();

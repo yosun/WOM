@@ -7,19 +7,40 @@ Requires **Node 22.18+**. Run from a clone or downloaded ZIP of this repository.
 `npm install`, build, app server, database, Clerk account, Stripe setup or cloud CLI to configure.
 The script uses Node built-ins and the public files already in the repository.
 
-## Start here
+## Hello world: your photo → 3D
+
+Create `.env` in the repository root and set `AI3D_API_KEY` to your own key. Your AI3D
+account needs generation credit. Then replace the image path with your own JPG, PNG or WebP
+(up to 10 MiB):
 
 ```sh
 git clone https://github.com/yosun/WOM.git
 cd WOM
+# Set AI3D_API_KEY in .env, then:
+node demo/wompar/wompar.mjs --provider ai3d --source "/absolute/path/to/my-photo.jpg"
+```
+
+The command prints a run directory containing **`world.spz`**, **`report.html`**,
+**`results.json`** and **`job.json`**. Open the report for the downloaded 3D file and a provider
+viewer link when available. This is one paid Marble draft generation, with a default $2
+reservation ceiling; the final charge can differ. Explicit `--provider ai3d` ensures another
+configured vision key does not select a render comparison instead.
+
+For the complete WOMPar object-and-world recipe, [use the hosted app](https://wom.quest/?create=1)
+or [run the full application](../../README.md#in-your-terminal-one-key-one-photo-one-3d-file)
+with Muse + AI3D. The browser uploader accepts HEIC and short videos too.
+
+## Explore first: no key, no network
+
+```sh
 node demo/wompar/wompar.mjs --offline
 ```
 
-Open the printed `report.html` path in your browser. It contains the source photograph,
+Open the printed `report.html` path in your browser. It contains the public source photograph,
 reference and candidate renders, saved measurements, evidence hashes and a Par scorecard.
 `results.json` is the machine-readable version. Both are saved in a new folder under
 `data/wompar-demo/`, which is ignored by Git. Offline mode makes **zero network requests**,
-even when keys are configured.
+even when keys are configured. [View the hosted offline report](https://wom.quest/wompar/offline.html).
 
 ## Add just one key
 

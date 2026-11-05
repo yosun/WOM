@@ -20,12 +20,15 @@ const files = [
 
 try {
   await mkdir(target, { recursive: true });
+  for (const name of ['wom-pipeline.svg', 'wom-study.svg']) {
+    await copyFile(path.join(root, 'docs', 'images', name), path.join(target, name));
+  }
   for (const file of files) {
     const dest = path.join(bundle, file);
     await mkdir(path.dirname(dest), { recursive: true });
     await copyFile(path.join(root, file), dest);
   }
-  await writeFile(path.join(bundle, 'START-HERE.txt'), `WOMPar standalone demo\n\nRequires Node 22.18 or later. No installation or account is needed for the offline example.\n\n  cd wompar-demo\n  node demo/wompar/wompar.mjs --offline\n\nOpen the report path printed by the command. For a fresh model comparison, add one key to .env and run without --offline. Provider requests may incur charges. Keys remain on your computer. See demo/wompar/README.md for details.\n`);
+  await writeFile(path.join(bundle, 'START-HERE.txt'), `WOMPar: your photo to 3D\n\nRequires Node 22.18 or later; no npm installation.\n\n  cd wompar-demo\n\nCreate .env here and add AI3D_API_KEY=your_key. Replace the image path:\n\n  node demo/wompar/wompar.mjs --provider ai3d --source "/absolute/path/to/my-photo.jpg"\n\nThis submits one paid Marble draft job (default reservation ceiling $2; final charge can differ). Open the printed report.html for world.spz and the provider viewer link when available. If polling times out, continue with --provider ai3d --resume JOB_ID.\n\nExplore without a key or network:\n\n  node demo/wompar/wompar.mjs --offline\n\nKeys remain on your computer. See demo/wompar/README.md for comparison providers, recovery and the full app. Hosted creation: https://wom.quest/?create=1\n`);
   await writeFile(path.join(bundle, '.env.example'), '# Optional: copy to .env and supply one key for a fresh run.\nMUSE_API_KEY=\nOPENAI_API_KEY=\nGEMINI_API_KEY=\nANTHROPIC_API_KEY=\nAI3D_API_KEY=\n');
   const archive = path.join(target, 'wompar-demo.tar.gz');
   const tar = spawnSync('tar', ['-czf', archive, '-C', temp, 'wompar-demo'], {
