@@ -1,0 +1,588 @@
+{
+  "schema": "wom-readme-technical-assets/1",
+  "title": "One retained Sunny Garden reconstruction and a separately recorded guarded repair",
+  "generator": "scripts/prepare-readme-technical-assets.mjs",
+  "generation": "Deterministic export of explicitly allowlisted local files; no network, paid APIs, or image-generation calls",
+  "sanitization": "Only the images and this explicitly selected numerical/camera evidence are exported; EXIF/IPTC/XMP stripped; no raw manifests, receipts, URLs, account IDs, or credentials",
+  "maxWidth": 1200,
+  "inputs": [
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/source.jpg",
+      "sha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/golden-retriever/mask.png",
+      "sha256": "1b6bed6a8073efa6196d14fdb81548d90b96c4f8cb7cc3072b24b894cb7b58c6"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/red-vintage-bicycle/mask.png",
+      "sha256": "3040c37ecb9ac89759fabf7b82e941dd05876f476e3404aecf90d71bad0eae33"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/mask.png",
+      "sha256": "dae33b85585d9dca2962392c608a68fe56a1b265114ba2ff89291a4632ac5c16"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/potted-lemon-tree/mask.png",
+      "sha256": "fe124ee2d95f191296fcdd53cdd728b53510523d489668e16ee6668704904a58"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/cutout_raw.png",
+      "sha256": "e9c0e570b358e27abc7daad0bd3cb56e52fc688109a9048642f481ddb76acc6b"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/cutout.png",
+      "sha256": "b477bff67f1d8471b0aff64678576d3c8c9dfc5c68af0af2084db6853f4d6084"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/clean.jpg",
+      "sha256": "f96cbaf4417a50d8cb1112e963e0129706f126176ce70e3152b1944cecd151e6"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/depth.exr",
+      "sha256": "a6592c42e1b88edba6ed0d0b704e809cebc0ce039ba210cbda70b8959ef9a595"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/preview.png",
+      "sha256": "9b7c68ac7c64ae32a9e61061fab703a5768a1ebd8c0e3bd7bef062a9e2c8212e"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/splat-preview.png",
+      "sha256": "3c284c83ed7b354606cba6ac7f62c4a6547e30ca8a478e9c4834ea28241e91b7"
+    },
+    {
+      "path": "data/worlds/mvxixlbz34cbfb22/world/thumbnail.webp",
+      "sha256": "9572cf08c8f07e0365dba6f73b384cb51a7ad94a7706b28c6a9f049061df1981"
+    },
+    {
+      "path": "data/bench/placement/20261101-215829/overlays/mvxixlbz34cbfb22__wooden-garden-bench__tripo-v31__moge3.jpg",
+      "sha256": "13c2f890ac765ea9beb9fe31a0f07cdd954ba32db068e2ce7acbe38f927e7b41"
+    },
+    {
+      "path": "data/par-courses/wompar-0.1-pilot/reference/sunny-garden/trajectory.json",
+      "sha256": "92420dac3d95982c5ad4b3690349ec80765e1171b155fb8b9f73e8a245958b06"
+    },
+    {
+      "path": "data/par-courses/wompar-0.1-pilot/reference/sunny-garden/frames/0000.jpg",
+      "sha256": "c1a8781aba9d83a80d77127251aad3b8f6b9b908369a679e82008dafa42046a1"
+    },
+    {
+      "path": "data/par-courses/wompar-0.1-pilot/reference/sunny-garden/frames/0009.jpg",
+      "sha256": "f3b3ec37276cb652475fc022fff31960ca5d82496f5b94cd5af7b21665a16050"
+    },
+    {
+      "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/run.json",
+      "sha256": "10530ff09671a519937a54cfd7a324f3532143b9026ffcc2f6daf8ce83104462"
+    },
+    {
+      "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/baseline/006.jpg",
+      "sha256": "6c3a187b0f636a5b7f8751a85922000e4c2bcb1eb421236fbe9e289ffeacddca"
+    },
+    {
+      "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/repair-002/after-006.jpg",
+      "sha256": "94bb1db9b9324968e4a9f76a7e4444f243e972ccdcead77f43df13f019cbed3c"
+    }
+  ],
+  "assets": [
+    {
+      "file": "source.jpg",
+      "sha256": "476ec394c08b94fd7d012ffa0d15643dca9b9b17ff18872158bab8e88c44f73e",
+      "bytes": 427355,
+      "width": 1200,
+      "height": 800,
+      "alpha": false,
+      "label": "Original Sunny Garden photograph",
+      "models": [],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/source.jpg",
+          "sha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ]
+    },
+    {
+      "file": "masks.jpg",
+      "sha256": "5af3f0949c2e747a7770704ae3ec503b2883e6dca4a0258833639b6997ba461b",
+      "bytes": 518116,
+      "width": 1200,
+      "height": 800,
+      "alpha": false,
+      "label": "Four retained SAM 3.1 masks over the original photograph",
+      "models": [
+        "SAM 3.1"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/source.jpg",
+          "sha256": "81841c4d0958d6733a8213955f3e4020c0806dea3fdce4698a34d4017b036a05"
+        },
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/golden-retriever/mask.png",
+          "sha256": "1b6bed6a8073efa6196d14fdb81548d90b96c4f8cb7cc3072b24b894cb7b58c6"
+        },
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/red-vintage-bicycle/mask.png",
+          "sha256": "3040c37ecb9ac89759fabf7b82e941dd05876f476e3404aecf90d71bad0eae33"
+        },
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/mask.png",
+          "sha256": "dae33b85585d9dca2962392c608a68fe56a1b265114ba2ff89291a4632ac5c16"
+        },
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/potted-lemon-tree/mask.png",
+          "sha256": "fe124ee2d95f191296fcdd53cdd728b53510523d489668e16ee6668704904a58"
+        }
+      ],
+      "transforms": [
+        "Original photograph downsampled to 1200px width with preserved framing",
+        "Actual binary masks thresholded at 128 and resized with nearest-neighbor interpolation",
+        "Colored interiors use opacity 0.36; one-pixel inside boundaries use opacity 0.95; no invented mask geometry",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ],
+      "legend": [
+        {
+          "object": "golden retriever",
+          "color": "#ffc34c"
+        },
+        {
+          "object": "red vintage bicycle",
+          "color": "#4adcf5"
+        },
+        {
+          "object": "wooden garden bench",
+          "color": "#f368cb"
+        },
+        {
+          "object": "potted lemon tree",
+          "color": "#88e478"
+        }
+      ]
+    },
+    {
+      "file": "cutout-raw.png",
+      "sha256": "82e1a2eeae47540ec884c9e1007d7e276ef65ec621c3e8b1713cd917ab1919f6",
+      "bytes": 313171,
+      "width": 513,
+      "height": 469,
+      "alpha": true,
+      "label": "Bench cutout from the original source and mask; occluded region remains missing",
+      "models": [
+        "SAM 3.1"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/cutout_raw.png",
+          "sha256": "e9c0e570b358e27abc7daad0bd3cb56e52fc688109a9048642f481ddb76acc6b"
+        }
+      ],
+      "transforms": [
+        "Trimmed fully transparent margin only: {\"left\":50,\"top\":72,\"width\":513,\"height\":469}",
+        "Preserved all pixels with alpha > 0, including semitransparent edges",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ]
+    },
+    {
+      "file": "cutout-completed.png",
+      "sha256": "c6e58702f4aa90667a5c9dab3b4ca02188643b68ae468c441ec325940a49c940",
+      "bytes": 981220,
+      "width": 1024,
+      "height": 1024,
+      "alpha": false,
+      "label": "Retained Muse Image completed bench input; generated white background preserved",
+      "models": [
+        "Muse Image"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/cutout.png",
+          "sha256": "b477bff67f1d8471b0aff64678576d3c8c9dfc5c68af0af2084db6853f4d6084"
+        }
+      ],
+      "transforms": [
+        "Input has no alpha; retained full image and its existing white background without inventing a segmentation mask",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ]
+    },
+    {
+      "file": "clean-plate.jpg",
+      "sha256": "2b010b03ca59b89e4b1580ecbe21c2d3087c3cd9b8d4e89ae46ec8f709f47730",
+      "bytes": 445474,
+      "width": 1200,
+      "height": 800,
+      "alpha": false,
+      "label": "Retained clean plate with selected foreground objects removed",
+      "models": [
+        "Muse Image"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/clean.jpg",
+          "sha256": "f96cbaf4417a50d8cb1112e963e0129706f126176ce70e3152b1944cecd151e6"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ]
+    },
+    {
+      "file": "depth.png",
+      "sha256": "12989d60cfe6227fac8785c6af449b390cd704cca38536dfe0d9c760599bfcb4",
+      "bytes": 252208,
+      "width": 1024,
+      "height": 683,
+      "alpha": false,
+      "label": "Saved MoGe-3 depth; warm colors are nearer, dark blue is farther",
+      "models": [
+        "MoGe-3"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/depth/moge3/original/depth.exr",
+          "sha256": "a6592c42e1b88edba6ed0d0b704e809cebc0ce039ba210cbda70b8959ef9a595"
+        }
+      ],
+      "transforms": [
+        "Decoded retained depth.exr as Float32; used first scalar depth channel",
+        "Flipped EXRLoader bottom-up rows to match the source photograph",
+        "Displayed log(depth) normalized between the 2nd and 98th percentiles; clipped values outside that range",
+        "Near = #f8c35d, midpoint = #3c8295, far = #19274a; invalid depth = #080c11",
+        "Color is a visualization of predicted depth, not a depth-error or accuracy measurement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ],
+      "normalization": {
+        "kind": "log depth, percentiles 2–98",
+        "nearM": 2.0250308513641357,
+        "farM": 23.046546936035156,
+        "validPixels": 626610,
+        "totalPixels": 699392,
+        "minimumValidM": 1.9014294147491455,
+        "maximumValidM": 40.20647048950195
+      }
+    },
+    {
+      "file": "mesh.png",
+      "sha256": "0ea0c6afaa94db385acdf1bd2002a2e53555067a1d91bc288a0cabffe00b6b12",
+      "bytes": 223605,
+      "width": 418,
+      "height": 451,
+      "alpha": true,
+      "label": "Retained textured-mesh model preview",
+      "models": [
+        "Tripo H3.1 / tripo-v31"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/preview.png",
+          "sha256": "9b7c68ac7c64ae32a9e61061fab703a5768a1ebd8c0e3bd7bef062a9e2c8212e"
+        }
+      ],
+      "transforms": [
+        "Trimmed fully transparent margin only: {\"left\":45,\"top\":14,\"width\":418,\"height\":451}",
+        "Preserved all pixels with alpha > 0, including semitransparent edges",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ]
+    },
+    {
+      "file": "gaussian.jpg",
+      "sha256": "b8b022b7ae0288801870b055a0b7787fa1aaeb4968f323905bbb84508574935d",
+      "bytes": 131446,
+      "width": 1024,
+      "height": 1024,
+      "alpha": false,
+      "label": "Retained Gaussian-splat model preview",
+      "models": [
+        "TripoSplat"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/objects/wooden-garden-bench/splat-preview.png",
+          "sha256": "3c284c83ed7b354606cba6ac7f62c4a6547e30ca8a478e9c4834ea28241e91b7"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ]
+    },
+    {
+      "file": "world.jpg",
+      "sha256": "d49978eba1068f9d8ce5abd3ec3cb71138ff85878312ca96a36515d330de0b23",
+      "bytes": 94290,
+      "width": 720,
+      "height": 480,
+      "alpha": false,
+      "label": "Retained Marble world thumbnail; not a newly rendered scene",
+      "models": [
+        "World Labs Marble"
+      ],
+      "inputs": [
+        {
+          "path": "data/worlds/mvxixlbz34cbfb22/world/thumbnail.webp",
+          "sha256": "9572cf08c8f07e0365dba6f73b384cb51a7ad94a7706b28c6a9f049061df1981"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ]
+    },
+    {
+      "file": "fit-overlay.jpg",
+      "sha256": "34a047aecbb7fcb9baaab104fdefe10a0b23bce086b63c984688be9c0809f85b",
+      "bytes": 185694,
+      "width": 904,
+      "height": 409,
+      "alpha": false,
+      "label": "Saved two-panel bench placement overlay: fitter and grounded",
+      "models": [
+        "Tripo H3.1 / tripo-v31",
+        "MoGe-3",
+        "Local fitter"
+      ],
+      "inputs": [
+        {
+          "path": "data/bench/placement/20261101-215829/overlays/mvxixlbz34cbfb22__wooden-garden-bench__tripo-v31__moge3.jpg",
+          "sha256": "13c2f890ac765ea9beb9fe31a0f07cdd954ba32db068e2ce7acbe38f927e7b41"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ],
+      "metricsVisibleInOriginal": {
+        "fitterSilhouetteIouRounded": 0.8,
+        "groundedSilhouetteIouRounded": 0.82
+      },
+      "scope": "One saved bench pair with both halves and whole framing preserved; independent of aggregate model-study results"
+    },
+    {
+      "file": "source-view.jpg",
+      "sha256": "fde8255c142da85dce08c5f1521b6d5c703ad8c903d56923a7b05156491ba974",
+      "bytes": 243597,
+      "width": 1024,
+      "height": 640,
+      "alpha": false,
+      "label": "Saved reconstruction at the source camera",
+      "models": [
+        "WOMPar: IDOL objects + Marble surroundings + MoGe-3"
+      ],
+      "inputs": [
+        {
+          "path": "data/par-courses/wompar-0.1-pilot/reference/sunny-garden/frames/0000.jpg",
+          "sha256": "c1a8781aba9d83a80d77127251aad3b8f6b9b908369a679e82008dafa42046a1"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ],
+      "camera": {
+        "view": "photo",
+        "frame": "0000",
+        "id": "0000",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovY": 41.15703582697244,
+        "aspect": 1.6
+      },
+      "cameraProvenance": {
+        "path": "data/par-courses/wompar-0.1-pilot/reference/sunny-garden/trajectory.json",
+        "sha256": "92420dac3d95982c5ad4b3690349ec80765e1171b155fb8b9f73e8a245958b06"
+      }
+    },
+    {
+      "file": "novel-view.jpg",
+      "sha256": "de40470e941f50fe43d3ac8e165e54556e46b64a80b1bcb0923aa3bb7151d9d9",
+      "bytes": 245413,
+      "width": 1024,
+      "height": 640,
+      "alpha": false,
+      "label": "Saved reconstruction at the right patrol camera",
+      "models": [
+        "WOMPar: IDOL objects + Marble surroundings + MoGe-3"
+      ],
+      "inputs": [
+        {
+          "path": "data/par-courses/wompar-0.1-pilot/reference/sunny-garden/frames/0009.jpg",
+          "sha256": "f3b3ec37276cb652475fc022fff31960ca5d82496f5b94cd5af7b21665a16050"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ],
+      "camera": {
+        "view": "right",
+        "frame": "0009",
+        "id": "0009",
+        "position": [
+          0.7474599688327522,
+          -0.0033423659120370534,
+          -0.5605653551972891
+        ],
+        "quaternion": [
+          -0.051512378925760494,
+          0.11497399418834194,
+          0.0015072418470446203,
+          0.9920308380790401
+        ],
+        "fovY": 41.15703582697244,
+        "aspect": 1.6
+      },
+      "cameraProvenance": {
+        "path": "data/par-courses/wompar-0.1-pilot/reference/sunny-garden/trajectory.json",
+        "sha256": "92420dac3d95982c5ad4b3690349ec80765e1171b155fb8b9f73e8a245958b06"
+      }
+    },
+    {
+      "file": "repair-before.jpg",
+      "sha256": "c7b8584c9a45704d05289373271ba06b7dbf5f03bfaad86d368b7101f73d0436",
+      "bytes": 153262,
+      "width": 800,
+      "height": 500,
+      "alpha": false,
+      "label": "Before: IDOL bicycle has an attached green sheet",
+      "models": [
+        "IDOL"
+      ],
+      "inputs": [
+        {
+          "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/baseline/006.jpg",
+          "sha256": "6c3a187b0f636a5b7f8751a85922000e4c2bcb1eb421236fbe9e289ffeacddca"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ],
+      "camera": {
+        "view": "object:golden-retriever:left",
+        "pose": {
+          "position": [
+            -1.981,
+            -0.043,
+            -1.216
+          ],
+          "quaternion": [
+            -0.0632,
+            -0.3864,
+            -0.0343,
+            0.9195
+          ]
+        },
+        "fovY": 38.78229965134716,
+        "aspect": 1.6
+      },
+      "recordProvenance": {
+        "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/run.json",
+        "sha256": "10530ff09671a519937a54cfd7a324f3532143b9026ffcc2f6daf8ce83104462"
+      },
+      "evidenceInputHashVerified": true
+    },
+    {
+      "file": "repair-after.jpg",
+      "sha256": "12ee685f6c86e133500eb9be9da5ac12f1790eb809788f8945eab28dc80de7de",
+      "bytes": 154885,
+      "width": 800,
+      "height": 500,
+      "alpha": false,
+      "label": "After: retained Tripo H3.1 bicycle replaces the affected asset",
+      "models": [
+        "Tripo H3.1 / tripo-v31"
+      ],
+      "inputs": [
+        {
+          "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/repair-002/after-006.jpg",
+          "sha256": "94bb1db9b9324968e4a9f76a7e4444f243e972ccdcead77f43df13f019cbed3c"
+        }
+      ],
+      "transforms": [
+        "Preserved full image framing",
+        "Downsampled only if wider than 1200px; no enlargement",
+        "Re-encoded with sharp default metadata stripping; no EXIF, IPTC, or XMP retained"
+      ],
+      "camera": {
+        "view": "object:golden-retriever:left",
+        "pose": {
+          "position": [
+            -1.981,
+            -0.043,
+            -1.216
+          ],
+          "quaternion": [
+            -0.0632,
+            -0.3864,
+            -0.0343,
+            0.9195
+          ]
+        },
+        "fovY": 38.78229965134716,
+        "aspect": 1.6
+      },
+      "recordProvenance": {
+        "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/run.json",
+        "sha256": "10530ff09671a519937a54cfd7a324f3532143b9026ffcc2f6daf8ce83104462"
+      },
+      "evidenceInputHashVerified": true
+    }
+  ],
+  "anomalies": [
+    {
+      "file": "cutout-completed.png",
+      "issue": "Retained completed bench image is RGB, not RGBA",
+      "handling": "Preserved existing pixels and white background; no white-to-alpha removal or inferred mask"
+    }
+  ],
+  "repairEvidence": {
+    "record": {
+      "path": "data/checks/womagent-cleanup-yjfkdrxx/worlds/mvxixlbz34cbfb22/womagent/amw2v11ff2583cc4f/run.json",
+      "sha256": "10530ff09671a519937a54cfd7a324f3532143b9026ffcc2f6daf8ce83104462"
+    },
+    "run": "amw2v11ff2583cc4f",
+    "object": "red-vintage-bicycle",
+    "acceptedAction": "use:tripo-v31",
+    "from": "idol",
+    "to": "tripo-v31",
+    "acceptedRepair": "repair-002",
+    "priorCleanupStatus": "rolled-back",
+    "requiredViews": 15,
+    "afterViews": 15,
+    "verifiedViews": 15,
+    "allRequiredViewsReviewed": true,
+    "minimumReviewerConfidence": 0.8,
+    "new3dGenerations": 0,
+    "generationAllowed": false,
+    "fixedSightings": 9,
+    "remainingOpenSightings": 32,
+    "status": "budget-limited",
+    "liveModelCalls": 33,
+    "cachedModelCalls": 7,
+    "totalRunModelCostUsd": 0.47367635,
+    "scope": "Local bicycle defect repair in a regression copy. Other issues remain. No Global WOMPar ballots or whole-world superiority result."
+  }
+}

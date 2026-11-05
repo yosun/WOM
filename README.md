@@ -4,9 +4,13 @@
 
 WOM reconstructs the important objects in a photograph, builds their surroundings, and composes them into a scene you can explore. **WOMPar** is our reference reconstruction system. **WOMetrics** is the evaluation framework: fidelity, placement, asset quality, camera consistency, reliability, cost and time, with saved evidence behind the numbers.
 
-**[Create 3D from your photo ↗](https://wom.quest/?create=1)** · **[Try WOMPar](https://wom.quest/wompar.html)** · **[Results & metrics](#results--metrics)** · **[Beat WOMPar](https://wom.quest/#/beat)**
+**[Try WOM at wom.quest ↗](https://wom.quest)** · **[Create 3D from your photo](https://wom.quest/?create=1)** · **[Try WOMPar](https://wom.quest/wompar.html)** · **[Results & metrics](#results--metrics)** · **[Beat WOMPar](https://wom.quest/#/beat)**
 
-[![Choose a photo, reconstruct objects and surroundings, explore the world, and inspect the measurements.](docs/images/wom-pipeline.svg)](https://wom.quest/wompar.html)
+![WOM technical pipeline with actual Sunny Garden source, SAM masks, clean plate, MoGe depth, mesh and Gaussian assets, Marble world, silhouette fitting, camera views and a verified bicycle repair.](docs/images/wom-technical-overview.png)
+
+[Full-resolution infographic](docs/images/wom-technical-overview.png) · [Evidence & reproducible source](docs/images/wom-technical-assets/README.md) · [Watch the recorded agent replay](https://wom.quest/u/yosun/mvxixlbz34cbfb22/agents)
+
+The plate follows the **same source photograph** through segmentation, reconstruction and camera fitting. Its repair pair shows a separately recorded test at the **same camera pose**: WOMAgent replaced a contaminated bicycle asset, then checked all 15 saved views. These are retained demo results; the global scoring contract and model study below have separate evidence.
 
 ## Hello world: your image → 3D
 
