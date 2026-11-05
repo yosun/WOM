@@ -1,8 +1,10 @@
-# WOM — World of a Memory
+# WOM · 望 — World of a Memory
 
 **Turn your photo into a 3D world. Measure how faithfully it remembers.**
 
-WOM reconstructs the important objects in a photograph, builds their surroundings, and composes them into a scene you can explore. **WOMPar** is our reference reconstruction system. **WOMetrics** is the evaluation framework: fidelity, placement, asset quality, camera consistency, reliability, cost and time, with saved evidence behind the numbers.
+**WOM** stands for **World of a Memory**. Its Chinese name, **望** (*wàng* in Mandarin), carries the meanings **to gaze into the distance** and **to hope or look forward to**.[^wang] For WOM, these senses connect looking back at a memory with looking beyond the photograph: turning a moment you can see into a world you can explore.
+
+WOM reconstructs the important objects in a photograph, builds their surroundings, and composes them into a scene you can explore. **WOMPar** is our reference reconstruction system. **WOMetrics** means **World Observation Metrics**, the evaluation framework: fidelity, placement, asset quality, camera consistency, reliability, cost and time, with saved evidence behind the numbers.
 
 **[Try WOM at wom.quest ↗](https://wom.quest)** · **[Create 3D from your photo](https://wom.quest/?create=1)** · **[Try WOMPar](https://wom.quest/wompar.html)** · **[Results & metrics](#results--metrics)** · **[Beat WOMPar](https://wom.quest/#/beat)**
 
@@ -165,3 +167,5 @@ npm run build                          # Web app, public demo & standalone downl
 ```
 
 Keys stay on your computer or server. Keep `.env` private; the [environment template](.env.example) contains placeholders. Public examples are bundled explicitly; private worlds, benchmark caches and credentials are excluded from the standalone download.
+
+[^wang]: Pronunciation and meanings: [Taiwan Ministry of Education, *Revised Mandarin Chinese Dictionary*, 望](https://dict.revised.moe.edu.tw/dictView.jsp?ID=11566).
